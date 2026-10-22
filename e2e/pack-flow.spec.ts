@@ -131,3 +131,45 @@ test("built-in template can be edited, used by a new pack, and reset", async ({ 
   await expect(card.getByText("Built-in", { exact: true })).toBeVisible();
   await expect(card.getByRole("button", { name: /Reset/ })).toHaveCount(0);
 });
+
+test("large PDF export keeps the page responsive and supports cancel", async ({ page }, testInfo) => {
+  test.setTimeout(180_000);
+  // ~1500 text pages: heavy enough that a main-thread merge would visibly freeze the tab.
+  const { PDFDocument, StandardFonts } = await import("pdf-lib");
+  const d = await PDFDocument.create();
+  const font = await d.embedFont(StandardFonts.Helvetica);
+  for (let i = 0; i < 1500; i++) {
+    const pg = d.addPage();
+    for (let l = 0; l < 40; l++) pg.drawText(`Page ${i} line ${l} lorem ipsum dolor sit amet consectetur`, { x: 40, y: 800 - l * 18, size: 10, font });
+  }
+  const big = { name: "big.pdf", mimeType: "application/pdf", buffer: Buffer.from(await d.save({ useObjectStreams: false })) };
+  testInfo.annotations.push({ type: "fixture", description: `${(big.buffer.length / 1048576).toFixed(1)} MB` });
+  expect(big.buffer.length).toBeLessThan(25 * 1048576);
+
+  await createPack(page);
+  await fileInput(page, "Cover letter").setInputFiles(big);
+  await fileInput(page, "Main document").setInputFiles(await pdfFile("small.pdf", 1));
+  await expect(page.getByText("Ready: all required")).toBeVisible();
+  await page.getByRole("link", { name: /Review/ }).click();
+
+  await page.evaluate(() => {
+    const w = window as unknown as { __maxGap: number };
+    w.__maxGap = 0;
+    let last = performance.now();
+    setInterval(() => { const n = performance.now(); w.__maxGap = Math.max(w.__maxGap, n - last); last = n; }, 20);
+  });
+  const [download] = await Promise.all([page.waitForEvent("download", { timeout: 150_000 }), page.getByRole("button", { name: /Create & download PDF/ }).click()]);
+  const out = testInfo.outputPath("big-out.pdf");
+  await download.saveAs(out);
+  expect((await PDFDocument.load(fs.readFileSync(out), { updateMetadata: false })).getPageCount()).toBe(1500 + 1 + 1);
+  const gap = await page.evaluate(() => (window as unknown as { __maxGap: number }).__maxGap);
+  testInfo.annotations.push({ type: "max main-thread gap", description: `${Math.round(gap)} ms` });
+  console.log(`fixture ${(big.buffer.length / 1048576).toFixed(1)} MB, max main-thread gap ${Math.round(gap)} ms`);
+  expect(gap).toBeLessThan(200); // main-thread merge of this fixture stalls ~400 ms
+
+  // Cancel: no file is produced and the button comes back.
+  await page.getByRole("button", { name: /Create & download PDF/ }).click();
+  await page.getByRole("button", { name: "Cancel export" }).click();
+  await expect(page.getByText("Export cancelled. No file was created.")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Create & download PDF/ })).toBeEnabled();
+});

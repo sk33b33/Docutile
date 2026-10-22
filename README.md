@@ -52,7 +52,7 @@ npm run build && npm start
 - File validation is client-side and signature-based. It is not a malware scan and not a security boundary.
 - Activity history is informational, not an immutable or compliance-grade audit trail.
 - No authentication, roles, cloud collaboration, e-signature, email delivery, or portal submission. These are out of scope and are not simulated.
-- Very large PDFs are merged on the main thread and may briefly freeze the tab.
+- PDF merging runs in a Web Worker so the page stays responsive on large packs, and an export can be cancelled. Very large packs are still limited by browser memory, since every file is held in memory while merging.
 
 ## Tests
 

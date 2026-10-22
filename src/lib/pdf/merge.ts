@@ -154,7 +154,19 @@ export async function drawCoverSheet(
   return pages;
 }
 
-export async function mergePack(pack: Pack, loadBlob: BlobLoader, now = new Date()): Promise<MergeResult> {
+export interface MergeProgress {
+  done: number;
+  total: number;
+  /** Display name of the file just processed, or a stage label. */
+  label: string;
+}
+
+export async function mergePack(
+  pack: Pack,
+  loadBlob: BlobLoader,
+  now = new Date(),
+  onProgress?: (p: MergeProgress) => void,
+): Promise<MergeResult> {
   const entries = orderedEntries(pack.slots);
   const mergeable = entries.filter((e) => canMerge(e.file.originalName));
   const separate = entries.filter((e) => !canMerge(e.file.originalName));
@@ -163,7 +175,8 @@ export async function mergePack(pack: Pack, loadBlob: BlobLoader, now = new Date
   const failures: MergeFailure[] = [];
   const bodyItems: { entry: OrderedEntry; first: number; count: number }[] = [];
 
-  for (const entry of mergeable) {
+  for (const [i, entry] of mergeable.entries()) {
+    onProgress?.({ done: i, total: mergeable.length, label: entry.file.displayName });
     const blob = await loadBlob(entry.file.blobKey);
     if (!blob) {
       failures.push({ entry, reason: "The stored file could not be found in this browser. Re-attach it." });
@@ -184,6 +197,7 @@ export async function mergePack(pack: Pack, loadBlob: BlobLoader, now = new Date
     return { bytes: null, merged: [], separate, failures, coverPages: 0 };
   }
 
+  onProgress?.({ done: mergeable.length, total: mergeable.length, label: "Building cover sheet and saving" });
   const label = (e: OrderedEntry) => e.file.displayName;
   const detail = (e: OrderedEntry) => `${e.slot.name}${e.slot.required ? "" : " (optional)"}`;
   const separateRows: CoverRow[] = separate.map((e, i) => ({

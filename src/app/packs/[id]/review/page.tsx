@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowLeft, Download, Eye, FileText, Loader2, Printer } from "lucide-react";
 import { useApp } from "@/components/providers/AppProvider";
 import { CompletenessSummary } from "@/components/packs/CompletenessSummary";
@@ -16,7 +16,8 @@ import { downloadBlob, previewBlob } from "@/lib/download";
 import { exportFileName } from "@/lib/filename";
 import { formatBytes, formatDate } from "@/lib/format";
 import { orderedEntries } from "@/lib/packs";
-import { buildManifest, canMerge, mergePack, type MergeFailure } from "@/lib/pdf/merge";
+import { buildManifest, canMerge, type MergeFailure, type MergeProgress } from "@/lib/pdf/merge";
+import { MergeCancelledError, mergePackOffThread } from "@/lib/pdf/mergeClient";
 import { computeCompleteness } from "@/lib/validation/pack";
 import type { AttachedFile } from "@/types";
 
@@ -30,6 +31,8 @@ export default function ReviewPage() {
   const [failures, setFailures] = useState<MergeFailure[]>([]);
   const [lastPdf, setLastPdf] = useState<Blob | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [progress, setProgress] = useState<MergeProgress | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   if (!pack) {
     return <EmptyState title="Pack not found" action={<LinkButton href="/">Back to dashboard</LinkButton>}>This draft does not exist in this browser.</EmptyState>;
@@ -42,9 +45,11 @@ export default function ReviewPage() {
 
   async function generate() {
     if (!pack || !c.ready) return; // hard guard, independent of the disabled button
-    setBusy(true); setFailures([]); setNote(null);
+    setBusy(true); setFailures([]); setNote(null); setProgress(null);
+    const abort = new AbortController();
+    abortRef.current = abort;
     try {
-      const result = await mergePack(pack, (k) => repo.getBlob(k));
+      const result = await mergePackOffThread(pack, (k) => repo.getBlob(k), { onProgress: setProgress, signal: abort.signal });
       if (result.failures.length) {
         setFailures(result.failures);
         notify("error", "The PDF was not created because some files could not be merged. See details below.");
@@ -64,9 +69,12 @@ export default function ReviewPage() {
       }
       notify("success", `Created ${name} (${result.merged.reduce((n, m) => n + m.pageCount, 0) + result.coverPages} pages). Check your downloads folder.`);
     } catch (e) {
-      notify("error", e instanceof Error ? `Export failed: ${e.message}` : "Export failed.");
+      if (e instanceof MergeCancelledError) notify("info", "Export cancelled. No file was created.");
+      else notify("error", e instanceof Error ? `Export failed: ${e.message}` : "Export failed.");
     } finally {
+      abortRef.current = null;
       setBusy(false);
+      setProgress(null);
     }
   }
 
@@ -135,6 +143,12 @@ export default function ReviewPage() {
               {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FileText className="h-4 w-4" aria-hidden />}
               {busy ? "Creating PDF…" : "Create & download PDF"}
             </Button>
+            {busy && (
+              <div role="status" aria-live="polite" className="text-xs text-slate-700">
+                <p>{progress ? `${progress.done} of ${progress.total}: ${progress.label}` : "Reading files…"}</p>
+                <Button size="sm" className="mt-1" onClick={() => abortRef.current?.abort()}>Cancel export</Button>
+              </div>
+            )}
             {lastPdf && <Button className="w-full" onClick={() => previewBlob(lastPdf)}><Eye className="h-4 w-4" aria-hidden /> Open last PDF</Button>}
             <Button className="w-full" onClick={downloadManifest} disabled={!c.ready}><Download className="h-4 w-4" aria-hidden /> Download manifest (.txt)</Button>
             <Button className="w-full" onClick={() => window.print()}><Printer className="h-4 w-4" aria-hidden /> Print this review</Button>
