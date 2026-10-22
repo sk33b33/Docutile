@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Copy, Pencil, Plus, Trash2 } from "lucide-react";
+import { Copy, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { useApp } from "@/components/providers/AppProvider";
 import { Badge } from "@/components/ui/Badge";
 import { Button, LinkButton } from "@/components/ui/Button";
@@ -16,9 +16,10 @@ import type { Template } from "@/types";
 
 export default function TemplatesPage() {
   const router = useRouter();
-  const { templates, packs, saveTemplate, deleteTemplate, log } = useApp();
+  const { templates, packs, customisedTemplateIds, saveTemplate, deleteTemplate, log } = useApp();
   const { notify } = useToast();
   const [toDelete, setToDelete] = useState<Template | null>(null);
+  const [toReset, setToReset] = useState<Template | null>(null);
   const usedBy = toDelete ? packsUsingTemplate(packs, toDelete.id) : [];
 
   async function duplicate(t: Template) {
@@ -42,6 +43,14 @@ export default function TemplatesPage() {
     catch (e) { notify("error", e instanceof Error ? e.message : "Template could not be deleted."); }
   }
 
+  async function confirmReset() {
+    const t = toReset;
+    setToReset(null);
+    if (!t) return;
+    try { await deleteTemplate(t.id); await log("template_deleted", `Reset template "${t.name}" to default`); notify("success", `"${t.name}" was reset to its default.`); }
+    catch (e) { notify("error", e instanceof Error ? e.message : "Template could not be reset."); }
+  }
+
   return (
     <>
       <PageHeader
@@ -54,7 +63,7 @@ export default function TemplatesPage() {
           <li key={t.id} className="rounded-lg border border-slate-200 bg-white p-4">
             <div className="flex items-start justify-between gap-2">
               <h2 className="text-base font-semibold">{t.name}</h2>
-              <Badge tone={t.builtIn ? "info" : "neutral"}>{t.builtIn ? "Built-in" : "Custom"}</Badge>
+              <Badge tone={t.builtIn ? "info" : "neutral"}>{t.builtIn ? (customisedTemplateIds.includes(t.id) ? "Built-in (customised)" : "Built-in") : "Custom"}</Badge>
             </div>
             <p className="mt-1 text-sm text-slate-600">{t.description}</p>
             <p className="mt-2 text-xs text-slate-600">{t.slots.filter((s) => s.required).length} required · {t.slots.filter((s) => !s.required).length} optional · Used by {packsUsingTemplate(packs, t.id).length} pack(s)</p>
@@ -62,19 +71,23 @@ export default function TemplatesPage() {
               {t.slots.map((s) => <li key={s.id}>{s.name}{!s.required && <span className="text-slate-500"> (optional)</span>}</li>)}
             </ol>
             <div className="mt-3 flex flex-wrap gap-2">
-              {t.builtIn ? (
-                <Button size="sm" onClick={() => duplicate(t)}><Copy className="h-4 w-4" aria-hidden /> Duplicate to edit</Button>
-              ) : (
-                <>
-                  <LinkButton size="sm" href={`/templates/${t.id}`}><Pencil className="h-4 w-4" aria-hidden /> Edit</LinkButton>
-                  <Button size="sm" onClick={() => duplicate(t)}><Copy className="h-4 w-4" aria-hidden /> Duplicate</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setToDelete(t)} aria-label={`Delete template ${t.name}`}><Trash2 className="h-4 w-4" aria-hidden /> Delete</Button>
-                </>
+              <LinkButton size="sm" href={`/templates/${t.id}`}><Pencil className="h-4 w-4" aria-hidden /> Edit</LinkButton>
+              <Button size="sm" onClick={() => duplicate(t)}><Copy className="h-4 w-4" aria-hidden /> Duplicate</Button>
+              {t.builtIn && customisedTemplateIds.includes(t.id) && (
+                <Button size="sm" variant="ghost" onClick={() => setToReset(t)} aria-label={`Reset ${t.name} to default`}><RotateCcw className="h-4 w-4" aria-hidden /> Reset to default</Button>
+              )}
+              {!t.builtIn && (
+                <Button size="sm" variant="ghost" onClick={() => setToDelete(t)} aria-label={`Delete template ${t.name}`}><Trash2 className="h-4 w-4" aria-hidden /> Delete</Button>
               )}
             </div>
           </li>
         ))}
       </ul>
+      <ConfirmDialog
+        open={!!toReset} title="Reset to default?" confirmLabel="Reset template"
+        message={<>Discard your changes to “{toReset?.name}” and restore the original built-in slots? Existing packs are not affected.</>}
+        onCancel={() => setToReset(null)} onConfirm={confirmReset}
+      />
       <ConfirmDialog
         open={!!toDelete} danger title="Delete template?" confirmLabel="Delete template"
         message={<>

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { moveItem } from "@/lib/ordering";
 import { blobKeysOf, createPack, orderedEntries, packsUsingTemplate, statusFor } from "@/lib/packs";
 import { exportFileName, sanitizeFilePart } from "@/lib/filename";
-import { BUILT_IN_TEMPLATES } from "@/lib/templates";
+import { BUILT_IN_TEMPLATES, mergeTemplates } from "@/lib/templates";
 import { MemoryRepository } from "@/lib/storage/memory";
 import { StorageError } from "@/lib/storage/repository";
 import { file, pack, slot } from "./helpers";
@@ -88,5 +88,21 @@ describe("MemoryRepository", () => {
     expect(await repo.getBlob("b_1.pdf")).toBeNull();
     repo.failBlobWrites = true;
     await expect(repo.putBlob("k", new Blob(["x"]))).rejects.toBeInstanceOf(StorageError);
+  });
+});
+
+describe("mergeTemplates", () => {
+  const edited = { ...BUILT_IN_TEMPLATES[1], name: "Edited client onboarding" };
+  const custom = { ...BUILT_IN_TEMPLATES[0], id: "tpl_mine", builtIn: false, name: "Mine" };
+  it("returns built-ins unchanged when nothing is saved", () => {
+    expect(mergeTemplates(BUILT_IN_TEMPLATES, [])).toEqual(BUILT_IN_TEMPLATES);
+  });
+  it("replaces a built-in with its saved copy, keeping order, and appends custom templates", () => {
+    const merged = mergeTemplates(BUILT_IN_TEMPLATES, [custom, edited]);
+    expect(merged.map((t) => t.id)).toEqual([...BUILT_IN_TEMPLATES.map((t) => t.id), "tpl_mine"]);
+    expect(merged[1].name).toBe("Edited client onboarding");
+  });
+  it("reset (removing the saved copy) restores the original", () => {
+    expect(mergeTemplates(BUILT_IN_TEMPLATES, [custom])[1].name).toBe(BUILT_IN_TEMPLATES[1].name);
   });
 });

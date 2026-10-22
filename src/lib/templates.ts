@@ -62,3 +62,16 @@ export const BUILT_IN_TEMPLATES: Template[] = [
 export function cloneTemplateSlots(slots: TemplateSlot[]): TemplateSlot[] {
   return slots.map((s) => ({ ...s, acceptedTypes: [...s.acceptedTypes] }));
 }
+
+/**
+ * Built-in templates can be edited: an edited copy is saved under the built-in's id and
+ * replaces it here. Deleting that saved copy restores the original ("reset to default").
+ */
+export function mergeTemplates(builtIns: Template[], saved: Template[]): Template[] {
+  const savedById = new Map(saved.map((t) => [t.id, t]));
+  const builtInIds = new Set(builtIns.map((t) => t.id));
+  return [
+    ...builtIns.map((b) => savedById.get(b.id) ?? b),
+    ...saved.filter((t) => !builtInIds.has(t.id)),
+  ];
+}

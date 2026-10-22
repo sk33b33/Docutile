@@ -110,3 +110,24 @@ test("mobile layout has no horizontal overflow and a menu", async ({ page }) => 
   await expect(page.getByRole("button", { name: "Open menu" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(392);
 });
+
+test("built-in template can be edited, used by a new pack, and reset", async ({ page }) => {
+  await page.goto("/templates");
+  const card = page.locator("li").filter({ has: page.getByRole("heading", { name: "General submission" }) });
+  await card.getByRole("link", { name: "Edit" }).click();
+  await page.getByRole("button", { name: "Add slot" }).click();
+  await page.locator("#slot-name").fill("Board resolution");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("button", { name: "Save template" }).click();
+  await page.waitForURL(/\/templates$/);
+  await expect(card.getByText("Built-in (customised)")).toBeVisible();
+
+  await createPack(page);
+  await expect(page.getByRole("heading", { name: /Board resolution/ })).toBeVisible();
+
+  await page.goto("/templates");
+  await card.getByRole("button", { name: /Reset General submission to default/ }).click();
+  await page.getByRole("button", { name: "Reset template" }).click();
+  await expect(card.getByText("Built-in", { exact: true })).toBeVisible();
+  await expect(card.getByRole("button", { name: /Reset/ })).toHaveCount(0);
+});

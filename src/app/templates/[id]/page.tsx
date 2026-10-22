@@ -28,10 +28,10 @@ export default function TemplateEditorPage() {
   const { templates, packs } = useApp();
   const existing = id === "new" ? null : templates.find((t) => t.id === id) ?? null;
 
-  if (id !== "new" && (!existing || existing.builtIn)) {
+  if (id !== "new" && !existing) {
     return (
-      <EmptyState title={existing?.builtIn ? "Built-in templates are read-only" : "Template not found"} action={<LinkButton href="/templates">Back to templates</LinkButton>}>
-        {existing?.builtIn ? "Duplicate it from the Templates page to make an editable copy." : "It may have been deleted."}
+      <EmptyState title="Template not found" action={<LinkButton href="/templates">Back to templates</LinkButton>}>
+        It may have been deleted.
       </EmptyState>
     );
   }
