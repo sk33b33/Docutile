@@ -2,6 +2,16 @@
 
 export type PackStatus = "draft" | "ready" | "exported";
 
+/** Where a template's checklist came from, so users can verify it. */
+export interface TemplateSource {
+  label: string;
+  url: string;
+  /** ISO date the checklist was read from the source. */
+  retrievedOn: string;
+  /** The source page's own "last updated" note, when it shows one. */
+  pageUpdated?: string;
+}
+
 export interface TemplateSlot {
   id: string;
   name: string;
@@ -11,6 +21,8 @@ export interface TemplateSlot {
   acceptedTypes: string[];
   maxFileSizeBytes: number;
   allowMultiple: boolean;
+  /** Official form number shown on the tile, e.g. "J294". */
+  formRef?: string;
 }
 
 export interface Template {
@@ -20,6 +32,7 @@ export interface Template {
   category: string;
   slots: TemplateSlot[];
   builtIn: boolean;
+  source?: TemplateSource;
   createdAt: string;
   updatedAt: string;
 }
@@ -45,6 +58,7 @@ export interface DocumentSlot {
   acceptedTypes: string[];
   maxFileSizeBytes: number;
   allowMultiple: boolean;
+  formRef?: string;
   files: AttachedFile[];
 }
 
@@ -59,6 +73,7 @@ export interface Pack {
   notes: string;
   templateId: string | null;
   templateName: string;
+  templateSource?: TemplateSource;
   status: PackStatus;
   createdAt: string;
   updatedAt: string;

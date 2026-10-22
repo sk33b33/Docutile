@@ -30,6 +30,11 @@ interface Props extends SlotTileHandlers {
   error?: string;
 }
 
+/** "J294" -> "Form J294"; labels that already say "Form 2" are left alone. */
+function formLabel(ref: string) {
+  return /^J\w*\d+$/i.test(ref) ? `Form ${ref}` : ref;
+}
+
 function hasFiles(e: React.DragEvent) {
   return Array.from(e.dataTransfer.types).includes("Files");
 }
@@ -108,6 +113,7 @@ export function SlotTile(props: Props) {
           <h2 className="break-words text-sm font-semibold text-slate-900"><span className="mr-1 text-slate-500">{index + 1}.</span>{slot.name}</h2>
           <div className="mt-1 flex flex-wrap gap-1">
             <Badge tone={slot.required ? "required" : "neutral"}>{slot.required ? "Required" : "Optional"}</Badge>
+            {slot.formRef && <Badge tone="info">{formLabel(slot.formRef)}</Badge>}
             <Badge tone={complete ? "success" : "neutral"}>{complete ? (slot.allowMultiple ? `${slot.files.length} file(s)` : "Uploaded") : "Empty"}</Badge>
           </div>
         </div>

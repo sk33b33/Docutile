@@ -1,4 +1,5 @@
-import { DEFAULT_ACCEPTED_TYPES, DEFAULT_MAX_FILE_SIZE_BYTES } from "./constants";
+import { DEFAULT_ACCEPTED_TYPES, DEFAULT_MAX_FILE_SIZE_BYTES } from "../constants";
+import { DOJ_TEMPLATES } from "./doj";
 import type { Template, TemplateSlot } from "@/types";
 
 const SEED_DATE = "2025-01-01T00:00:00.000Z";
@@ -25,6 +26,8 @@ function slot(
 function tpl(id: string, name: string, category: string, description: string, slots: TemplateSlot[]): Template {
   return { id, name, category, description, slots, builtIn: true, createdAt: SEED_DATE, updatedAt: SEED_DATE };
 }
+
+export { DOJ_CATEGORY } from "./doj";
 
 export const BUILT_IN_TEMPLATES: Template[] = [
   tpl("tpl_supplier", "Supplier onboarding", "Procurement", "Standard documents for onboarding a new supplier.", [
@@ -57,6 +60,7 @@ export const BUILT_IN_TEMPLATES: Template[] = [
     slot("gen_main", "Main document", "The primary document being submitted.", true),
     slot("gen_attach", "Attachments", "Supporting attachments.", false, { allowMultiple: true }),
   ]),
+  ...DOJ_TEMPLATES,
 ];
 
 export function cloneTemplateSlots(slots: TemplateSlot[]): TemplateSlot[] {

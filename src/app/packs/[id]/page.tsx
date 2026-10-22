@@ -13,6 +13,7 @@ import { CompletenessSummary } from "@/components/packs/CompletenessSummary";
 import { PackStatusBadge } from "@/components/packs/PackStatusBadge";
 import { usePackEditor } from "@/components/packs/usePackEditor";
 import { SlotTile } from "@/components/documents/SlotTile";
+import { SourceNote } from "@/components/templates/SourceNote";
 import { SlotEditorDialog, type SlotDraft } from "@/components/templates/SlotEditorDialog";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { ConfirmDialog, Dialog } from "@/components/ui/Dialog";
@@ -175,6 +176,7 @@ export default function PackBuilderPage() {
             <h2 className="text-sm font-semibold text-slate-900">Pack order</h2>
             <p className="mt-1">Documents appear in the exported pack in tile order (left to right, top to bottom). Drag the grip handle, or use the arrow buttons, to reorder.</p>
             <p className="mt-2">Template: {pack.templateName}</p>
+            {pack.templateSource && <SourceNote source={pack.templateSource} className="mt-2" />}
           </section>
           {pack.notes && <NotesCard notes={pack.notes} />}
         </aside>

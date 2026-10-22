@@ -173,3 +173,28 @@ test("large PDF export keeps the page responsive and supports cancel", async ({ 
   await expect(page.getByText("Export cancelled. No file was created.")).toBeVisible();
   await expect(page.getByRole("button", { name: /Create & download PDF/ })).toBeEnabled();
 });
+
+test("South African DOJ checklist: tiles, form numbers, source, and readiness from required documents only", async ({ page }) => {
+  await page.goto("/packs/new");
+  await expect(page.getByRole("heading", { name: "South African DOJ" })).toBeVisible();
+  await page.locator("#pack-name").fill("Estate of J Citizen");
+  await page.locator("#pack-organisationName").fill("Master of the High Court");
+  await page.getByRole("radio", { name: /estate over R250 000/ }).check();
+  await expect(page.getByRole("link", { name: /How to report a deceased estate/ })).toHaveAttribute("href", /justice\.gov\.za\/master\/deceased-how/);
+  await page.getByRole("button", { name: "Create pack" }).click();
+  await page.waitForURL(/\/packs\/pack_/);
+
+  await expect(page.locator("li[id^=slot-]")).toHaveCount(12);
+  await expect(tile(page, "Death notice").getByText("Form J294")).toBeVisible();
+  await expect(tile(page, "Will and codicils").getByText("Optional")).toBeVisible();
+  await expect(page.getByText("0 of 5 required").first()).toBeVisible();
+  await expect(page.getByRole("link", { name: /How to report a deceased estate/ })).toBeVisible(); // source shown in the builder
+
+  const required = ["Death notice", "Death certificate", "Inventory of assets", "Acceptance of trust as executor", "Executor's ID (photo page)"];
+  for (const [i, name] of required.entries()) {
+    await fileInput(page, name).setInputFiles(await pdfFile(`doc${i}.pdf`, 1));
+    await expect(tile(page, name).getByText(`doc${i}.pdf`).first()).toBeVisible();
+    if (i < required.length - 1) await expect(page.getByText("Not ready")).toBeVisible();
+  }
+  await expect(page.getByText("Ready: all required")).toBeVisible();
+});

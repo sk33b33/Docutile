@@ -12,6 +12,8 @@ import { useToast } from "@/components/ui/Toast";
 import { newId } from "@/lib/id";
 import { packsUsingTemplate } from "@/lib/packs";
 import { cloneTemplateSlots } from "@/lib/templates";
+import { groupByCategory } from "@/lib/templates/categories";
+import { SourceNote } from "@/components/templates/SourceNote";
 import type { Template } from "@/types";
 
 export default function TemplatesPage() {
@@ -58,15 +60,20 @@ export default function TemplatesPage() {
         description="Templates define the document slots a new pack starts with. Changing a template never alters packs already created from it."
         actions={<LinkButton href="/templates/new" variant="primary"><Plus className="h-4 w-4" aria-hidden /> New template</LinkButton>}
       />
-      <ul className="grid gap-4 md:grid-cols-2">
-        {templates.map((t) => (
+      {groupByCategory(templates).map((g) => (
+      <section key={g.category} aria-label={g.category} className="mb-8">
+        <h2 className="text-lg font-semibold text-slate-900">{g.category}</h2>
+        {g.note && <p className="mb-3 max-w-3xl text-sm text-slate-600">{g.note}</p>}
+      <ul className="mt-3 grid gap-4 md:grid-cols-2">
+        {g.templates.map((t) => (
           <li key={t.id} className="rounded-lg border border-slate-200 bg-white p-4">
             <div className="flex items-start justify-between gap-2">
-              <h2 className="text-base font-semibold">{t.name}</h2>
+              <h3 className="text-base font-semibold">{t.name}</h3>
               <Badge tone={t.builtIn ? "info" : "neutral"}>{t.builtIn ? (customisedTemplateIds.includes(t.id) ? "Built-in (customised)" : "Built-in") : "Custom"}</Badge>
             </div>
             <p className="mt-1 text-sm text-slate-600">{t.description}</p>
             <p className="mt-2 text-xs text-slate-600">{t.slots.filter((s) => s.required).length} required · {t.slots.filter((s) => !s.required).length} optional · Used by {packsUsingTemplate(packs, t.id).length} pack(s)</p>
+            {t.source && <SourceNote source={t.source} className="mt-2" />}
             <ol className="mt-2 list-decimal pl-5 text-xs text-slate-700">
               {t.slots.map((s) => <li key={s.id}>{s.name}{!s.required && <span className="text-slate-500"> (optional)</span>}</li>)}
             </ol>
@@ -83,6 +90,8 @@ export default function TemplatesPage() {
           </li>
         ))}
       </ul>
+      </section>
+      ))}
       <ConfirmDialog
         open={!!toReset} title="Reset to default?" confirmLabel="Reset template"
         message={<>Discard your changes to “{toReset?.name}” and restore the original built-in slots? Existing packs are not affected.</>}

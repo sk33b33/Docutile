@@ -12,6 +12,7 @@ export function slotFromTemplateSlot(t: TemplateSlot): DocumentSlot {
     acceptedTypes: [...t.acceptedTypes],
     maxFileSizeBytes: t.maxFileSizeBytes,
     allowMultiple: t.allowMultiple,
+    formRef: t.formRef,
     files: [],
   };
 }
@@ -32,6 +33,7 @@ export function createPack(meta: PackMetaInput, template: Template | null, now =
     ...trimMeta(meta),
     templateId: template?.id ?? null,
     templateName: template?.name ?? "Custom checklist",
+    templateSource: template?.source ? { ...template.source } : undefined,
     status: "draft",
     createdAt: ts,
     updatedAt: ts,
