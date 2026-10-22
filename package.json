@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "check": "npm run lint && npm run typecheck && npm test && npm run build",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:large": "RUN_LARGE=1 playwright test e2e/large-files.spec.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

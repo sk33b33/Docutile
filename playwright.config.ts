@@ -6,6 +6,8 @@ const executablePath = process.env.PW_CHROMIUM_PATH || undefined;
 
 export default defineConfig({
   testDir: "e2e",
+  // The ~120 MB export test takes ~2 minutes; run it with `npm run test:e2e:large`.
+  testIgnore: process.env.RUN_LARGE ? [] : ["**/large-files.spec.ts"],
   timeout: 60_000,
   retries: process.env.CI ? 1 : 0,
   workers: 1,

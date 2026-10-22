@@ -62,6 +62,8 @@ npm run build && npm start
 
 Accessibility is checked in `e2e/a11y.spec.ts`: axe-core (WCAG 2.0/2.1/2.2 A and AA plus best-practice rules) runs on every page and on the key states (form errors, populated builder, dialogs, mobile menu), plus keyboard tests for tile reordering and dialog focus/Escape. Automated checks cannot catch everything; a manual screen-reader pass (NVDA/VoiceOver) has not been done.
 
+`npm run test:e2e:large` runs the slow large-file tests (opt-in, ~2 minutes): a 24.5 MB PDF is accepted and a 25.5 MB one rejected at the 25 MB limit, and a pack of five ~24 MB PDFs (~120 MB) is stored, survives a refresh, and exports. Measured in headless Chromium: 4.1 s to export, output the same size as the input, longest page stall 226 ms. Larger packs than that are untested and limited by browser memory.
+
 GitHub Actions (`.github/workflows/ci.yml`) runs lint, typecheck, unit tests and build, then the e2e tests, on every push to `main` and on pull requests.
 
 ## Layout
