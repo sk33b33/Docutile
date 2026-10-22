@@ -58,7 +58,9 @@ npm run build && npm start
 
 `npm test` runs Vitest unit tests covering file validation (type, size, empty, signature, duplicates), required-document completeness and readiness, slot/file ordering, template-to-pack copying, file-name sanitising, in-memory repository behaviour (blob cleanup, quota errors), and PDF merging against real PDFs/PNGs (order, page ranges, cover sheet spill-over, corrupt/missing files, non-mergeable files, non-Latin text).
 
-The UI flow was also smoke-tested in headless Chromium against a production build: validation messages, picker upload, OS-style drag-and-drop onto a tile, replace confirmation, reorder, refresh persistence, review order, PDF download (page count and file name), export blocked when a required file is removed, and no horizontal overflow at 390px. That script is not committed (Playwright is not a project dependency).
+`npm run test:e2e` runs Playwright end-to-end tests (in `e2e/`) against a production build: validation messages, picker upload, OS-style drag-and-drop onto a tile, replace confirmation, reorder, refresh persistence, review order, PDF download (page count and file name), export blocked when a required file is removed, custom slots, and no horizontal overflow at 390px. First run `npx playwright install chromium`, or point `PW_CHROMIUM_PATH` at an existing Chromium binary.
+
+GitHub Actions (`.github/workflows/ci.yml`) runs lint, typecheck, unit tests and build, then the e2e tests, on every push to `main` and on pull requests.
 
 ## Layout
 
