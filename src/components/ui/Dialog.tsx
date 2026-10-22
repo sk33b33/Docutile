@@ -27,12 +27,12 @@ export function Dialog({ open, title, onClose, children, footer }: DialogProps) 
       onClose={onClose}
       onCancel={(e) => { e.preventDefault(); onClose(); }}
       aria-labelledby="dialog-title"
-      className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-lg border border-slate-300 bg-white p-0 text-slate-900 shadow-xl backdrop:bg-slate-900/40"
+      className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-xl glass-strong p-0 text-slate-50"
     >
       {open && (
         <div className="p-5">
-          <h2 id="dialog-title" className="text-lg font-semibold text-slate-900">{title}</h2>
-          <div className="mt-3 text-sm text-slate-700">{children}</div>
+          <h2 id="dialog-title" className="text-lg font-semibold text-slate-50">{title}</h2>
+          <div className="mt-3 text-sm text-slate-200">{children}</div>
           {footer && <div className="mt-5 flex flex-wrap justify-end gap-2">{footer}</div>}
         </div>
       )}

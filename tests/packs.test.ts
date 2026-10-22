@@ -5,6 +5,7 @@ import { exportFileName, sanitizeFilePart } from "@/lib/filename";
 import { BUILT_IN_TEMPLATES, mergeTemplates } from "@/lib/templates";
 import { MemoryRepository } from "@/lib/storage/memory";
 import { StorageError } from "@/lib/storage/repository";
+import { computeCompleteness } from "@/lib/validation/pack";
 import { file, pack, slot } from "./helpers";
 
 const meta = { name: " Q1 ", organisationName: " Acme ", submissionType: "", referenceNumber: "", dueDate: "", notes: "" };
@@ -107,53 +108,94 @@ describe("mergeTemplates", () => {
   });
 });
 
-import { DOJ_CATEGORY, DOJ_TEMPLATES } from "@/lib/templates/doj";
+import { COURTS_CATEGORY, DOJ_CATEGORY, DOJ_TEMPLATES, ESTATES, TRUSTS } from "@/lib/templates/doj";
 import { canMerge } from "@/lib/pdf/merge";
 import { groupByCategory } from "@/lib/templates/categories";
 
-describe("South African DOJ templates", () => {
-  it("has the six expected checklists, all built-in and in the DOJ category", () => {
-    expect(DOJ_TEMPLATES.map((t) => t.id)).toEqual([
-      "tpl_doj_estate_over_250k", "tpl_doj_estate_under_250k", "tpl_doj_trust_inter_vivos",
-      "tpl_doj_trust_testamentary", "tpl_doj_trust_termination", "tpl_doj_maintenance", "tpl_doj_protection_order",
-    ]);
-    expect(DOJ_TEMPLATES.every((t) => t.builtIn && t.category === DOJ_CATEGORY)).toBe(true);
+const doj = (sub: string) => DOJ_TEMPLATES.filter((t) => t.category === DOJ_CATEGORY && t.subcategory === sub);
+const byId = (id: string) => DOJ_TEMPLATES.find((t) => t.id === id)!;
+
+describe("South African DOJ catalogue", () => {
+  it("splits the DOJ category into exactly two subcategories: Estates and Trusts", () => {
+    const subs = new Set(DOJ_TEMPLATES.filter((t) => t.category === DOJ_CATEGORY).map((t) => t.subcategory));
+    expect([...subs].sort()).toEqual([ESTATES, TRUSTS].sort());
   });
-  it("cites an official justice.gov.za source with a retrieval date", () => {
+  it("lists every Estates service", () => {
+    expect(doj(ESTATES).map((t) => t.id)).toEqual([
+      "tpl_doj_estate_over_250k", "tpl_doj_estate_under_250k", "tpl_doj_estate_foreign", "tpl_doj_estate_laa",
+      "tpl_doj_estate_objection", "tpl_doj_estate_copies", "tpl_doj_estate_s42", "tpl_doj_estate_s80", "tpl_doj_estate_funeral",
+    ]);
+  });
+  it("lists every Trusts service", () => {
+    expect(doj(TRUSTS).map((t) => t.id)).toEqual([
+      "tpl_doj_trust_inter_vivos", "tpl_doj_trust_testamentary", "tpl_doj_trust_amend", "tpl_doj_trust_trustee_details",
+      "tpl_doj_trust_bo_register", "tpl_doj_trust_terminated_report", "tpl_doj_trust_dormant_report",
+      "tpl_doj_trust_termination", "tpl_doj_trust_info", "tpl_doj_trust_copies",
+    ]);
+  });
+  it("keeps maintenance and protection orders in a separate courts category", () => {
+    const courts = DOJ_TEMPLATES.filter((t) => t.category === COURTS_CATEGORY).map((t) => t.id);
+    expect(courts).toEqual(["tpl_doj_maintenance", "tpl_doj_protection_order"]);
+  });
+  it("cites an official justice.gov.za source with a retrieval date for every service", () => {
     for (const t of DOJ_TEMPLATES) {
-      expect(t.source?.url).toMatch(/^https:\/\/(www\.)?justice\.gov\.za\//);
-      expect(t.source?.retrievedOn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(t.builtIn).toBe(true);
+      expect(t.source?.url, t.id).toMatch(/^https:\/\/(www\.)?justice\.gov\.za\//);
+      expect(t.source?.retrievedOn, t.id).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     }
   });
-  it("has unique slot ids across every built-in template", () => {
+  it("states how complete each checklist is, and explains every non-official one", () => {
+    for (const t of DOJ_TEMPLATES) {
+      expect(["published", "partial", "form-only"], t.id).toContain(t.checklist);
+      if (t.checklist !== "published") expect(t.checklistNote, t.id).toBeTruthy();
+    }
+  });
+  it("gives every service at least one required tile and unique tile ids across all built-ins", () => {
+    for (const t of DOJ_TEMPLATES) expect(t.slots.some((s) => s.required), t.id).toBe(true);
     const ids = BUILT_IN_TEMPLATES.flatMap((t) => t.slots.map((s) => s.id));
     expect(new Set(ids).size).toBe(ids.length);
   });
-  it("only accepts file types that can be merged into the combined PDF, and has required slots", () => {
+  it("accepts only mergeable scans, except the BO register spreadsheet", () => {
     for (const t of DOJ_TEMPLATES) {
-      expect(t.slots.some((s) => s.required)).toBe(true);
-      for (const s of t.slots) expect(s.acceptedTypes.every((ext) => canMerge(`x.${ext}`))).toBe(true);
+      for (const s of t.slots) {
+        const mergeable = s.acceptedTypes.every((ext) => canMerge(`x.${ext}`));
+        expect(mergeable, `${t.id}/${s.id}`).toBe(s.id !== "doj_bo_register");
+      }
     }
   });
   it("carries the official form numbers", () => {
-    const refs = (id: string) => DOJ_TEMPLATES.find((t) => t.id === id)!.slots.map((s) => s.formRef).filter(Boolean);
+    const refs = (id: string) => byId(id).slots.map((s) => s.formRef).filter(Boolean);
     expect(refs("tpl_doj_estate_over_250k")).toEqual(expect.arrayContaining(["J294", "J192", "J243", "J190", "J262"]));
     expect(refs("tpl_doj_estate_under_250k")).toEqual(expect.arrayContaining(["J294", "J192", "J243", "J155"]));
+    expect(refs("tpl_doj_estate_laa")).toEqual(expect.arrayContaining(["J193", "J187"]));
+    expect(refs("tpl_doj_estate_copies")).toContain("JM46");
     expect(refs("tpl_doj_trust_inter_vivos")).toEqual(expect.arrayContaining(["J401", "J417", "J405", "J450", "J344"]));
+    expect(refs("tpl_doj_trust_trustee_details")).toEqual(["J417"]);
     expect(refs("tpl_doj_protection_order")).toEqual(["Form 6", "Form 2"]);
   });
-  it("a pack copies slots (with form refs) and the source, and needs only the required ones to be ready", () => {
-    const t = DOJ_TEMPLATES[0];
+  it("requires an affidavit for a foreign estate", () => {
+    const aff = byId("tpl_doj_estate_foreign").slots.find((s) => s.id === "doj_ef_affidavit")!;
+    expect(aff.required).toBe(true);
+  });
+  it("a pack copies slots, form refs, source and checklist status, and is ready with only the required tiles", () => {
+    const t = byId("tpl_doj_estate_over_250k");
     const p = createPack(meta, t);
     expect(p.templateSource).toEqual(t.source);
     expect(p.templateSource).not.toBe(t.source);
+    expect(p.templateChecklist).toBe("published");
+    expect(p.templateNote).toBe(t.checklistNote);
     expect(p.slots.find((s) => s.name === "Death notice")?.formRef).toBe("J294");
+    const filled = p.slots.map((s) => (s.required ? { ...s, files: [file(`${s.id}.pdf`)] } : s));
+    expect(computeCompleteness(filled).ready).toBe(true);
+    expect(computeCompleteness(p.slots).ready).toBe(false);
   });
-  it("groups templates by category, keeping the general ones separate", () => {
+  it("groups by category then subcategory", () => {
     const groups = groupByCategory(BUILT_IN_TEMPLATES);
-    const doj = groups.find((g) => g.category === DOJ_CATEGORY)!;
-    expect(doj.templates).toHaveLength(7);
-    expect(doj.note).toBeTruthy();
-    expect(groups.length).toBeGreaterThan(1);
+    const g = groups.find((x) => x.category === DOJ_CATEGORY)!;
+    expect(g.subgroups.map((x) => x.name)).toEqual([ESTATES, TRUSTS]);
+    expect(g.count).toBe(19);
+    expect(g.note).toBeTruthy();
+    expect(groups.find((x) => x.category === COURTS_CATEGORY)?.count).toBe(2);
+    expect(groups.length).toBeGreaterThan(2);
   });
 });

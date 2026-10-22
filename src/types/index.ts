@@ -12,6 +12,14 @@ export interface TemplateSource {
   pageUpdated?: string;
 }
 
+/**
+ * How much of a service's document list the source actually publishes:
+ * - published: the source gives a document list for this service
+ * - partial: the source describes the process or part of the list; the rest follows standard practice
+ * - form-only: the source names the form but not the supporting documents
+ */
+export type ChecklistStatus = "published" | "partial" | "form-only";
+
 export interface TemplateSlot {
   id: string;
   name: string;
@@ -30,6 +38,11 @@ export interface Template {
   name: string;
   description: string;
   category: string;
+  /** Optional second level under `category`, e.g. "Estates" under "South African DOJ". */
+  subcategory?: string;
+  checklist?: ChecklistStatus;
+  /** What is and is not covered by the checklist, shown to users. */
+  checklistNote?: string;
   slots: TemplateSlot[];
   builtIn: boolean;
   source?: TemplateSource;
@@ -74,6 +87,8 @@ export interface Pack {
   templateId: string | null;
   templateName: string;
   templateSource?: TemplateSource;
+  templateChecklist?: ChecklistStatus;
+  templateNote?: string;
   status: PackStatus;
   createdAt: string;
   updatedAt: string;

@@ -134,7 +134,7 @@ export default function PackBuilderPage() {
           </>
         }
       />
-      <p className="mb-4 text-xs text-slate-600">Changes are saved automatically to this browser (IndexedDB). They are not shared and are lost if browser data is cleared.</p>
+      <p className="mb-4 text-xs text-slate-300">Changes are saved automatically to this browser (IndexedDB). They are not shared and are lost if browser data is cleared.</p>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
         <section aria-label="Document tiles">
@@ -172,8 +172,8 @@ export default function PackBuilderPage() {
 
         <aside aria-label="Pack summary" className="space-y-4 lg:sticky lg:top-6 lg:self-start">
           <CompletenessSummary c={c} />
-          <section className="rounded-lg border border-slate-200 bg-white p-4 text-xs text-slate-600">
-            <h2 className="text-sm font-semibold text-slate-900">Pack order</h2>
+          <section className="rounded-lg border border-white/10 glass p-4 text-xs text-slate-300">
+            <h2 className="text-sm font-semibold text-slate-50">Pack order</h2>
             <p className="mt-1">Documents appear in the exported pack in tile order (left to right, top to bottom). Drag the grip handle, or use the arrow buttons, to reorder.</p>
             <p className="mt-2">Template: {pack.templateName}</p>
             {pack.templateSource && <SourceNote source={pack.templateSource} className="mt-2" />}
@@ -242,9 +242,9 @@ export default function PackBuilderPage() {
 
 function NotesCard({ notes }: { notes: string }) {
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4 text-sm">
-      <h2 className="text-sm font-semibold text-slate-900">Notes</h2>
-      <p className="mt-1 whitespace-pre-wrap break-words text-slate-700">{notes}</p>
+    <section className="rounded-lg border border-white/10 glass p-4 text-sm">
+      <h2 className="text-sm font-semibold text-slate-50">Notes</h2>
+      <p className="mt-1 whitespace-pre-wrap break-words text-slate-200">{notes}</p>
     </section>
   );
 }

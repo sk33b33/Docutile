@@ -177,14 +177,17 @@ test("large PDF export keeps the page responsive and supports cancel", async ({ 
 test("South African DOJ checklist: tiles, form numbers, source, and readiness from required documents only", async ({ page }) => {
   await page.goto("/packs/new");
   await expect(page.getByRole("heading", { name: "South African DOJ" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Estates" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Trusts" })).toBeVisible();
+  await expect(page.getByRole("radio", { name: /Register an inter vivos trust/ })).toBeVisible();
   await page.locator("#pack-name").fill("Estate of J Citizen");
   await page.locator("#pack-organisationName").fill("Master of the High Court");
-  await page.getByRole("radio", { name: /estate over R250 000/ }).check();
+  await page.getByRole("radio", { name: /deceased estate: over R250 000/ }).check();
   await expect(page.getByRole("link", { name: /How to report a deceased estate/ })).toHaveAttribute("href", /justice\.gov\.za\/master\/deceased-how/);
   await page.getByRole("button", { name: "Create pack" }).click();
   await page.waitForURL(/\/packs\/pack_/);
 
-  await expect(page.locator("li[id^=slot-]")).toHaveCount(12);
+  await expect(page.locator("li[id^=slot-]")).toHaveCount(14);
   await expect(tile(page, "Death notice").getByText("Form J294")).toBeVisible();
   await expect(tile(page, "Will and codicils").getByText("Optional")).toBeVisible();
   await expect(page.getByText("0 of 5 required").first()).toBeVisible();
@@ -197,4 +200,24 @@ test("South African DOJ checklist: tiles, form numbers, source, and readiness fr
     if (i < required.length - 1) await expect(page.getByText("Not ready")).toBeVisible();
   }
   await expect(page.getByText("Ready: all required")).toBeVisible();
+});
+
+test("services catalogue lists every DOJ service by subcategory and starts a pack from one", async ({ page }) => {
+  await page.goto("/templates");
+  await expect(page.getByRole("heading", { name: /South African DOJ/ }).first()).toBeVisible();
+  const estates = page.getByRole("heading", { name: /^Estates/ });
+  const trusts = page.getByRole("heading", { name: /^Trusts/ });
+  await expect(estates).toContainText("9 services");
+  await expect(trusts).toContainText("10 services");
+  await expect(page.getByRole("heading", { name: "Register a testamentary trust" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Liquidation and distribution account (executor)" })).toBeVisible();
+
+  // Tiles are listed per service, with form numbers.
+  const card = page.locator("li").filter({ has: page.getByRole("heading", { name: "Register an inter vivos trust" }) });
+  await card.getByText(/Document tiles/).click();
+  await expect(card.getByText("[J401]")).toBeVisible();
+
+  // Create pack from a service preselects it.
+  await card.getByRole("link", { name: "Create pack" }).click();
+  await expect(page.getByRole("radio", { name: /Register an inter vivos trust/ })).toBeChecked();
 });

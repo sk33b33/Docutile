@@ -32,8 +32,8 @@ function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () =
               href={href}
               onClick={onNavigate}
               aria-current={active ? "page" : undefined}
-              className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-400 ${
-                active ? "bg-white/15 text-white" : "text-slate-300 hover:bg-white/10 hover:text-white"
+              className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 ${
+                active ? "bg-cyan-400/10 text-white shadow-[inset_0_0_0_1px_rgba(34,211,238,0.5),0_0_20px_rgba(34,211,238,0.25)]" : "text-slate-300 hover:bg-white/10 hover:text-white hover:shadow-[0_0_14px_rgba(139,92,246,0.35)]"
               }`}
             >
               <Icon className="h-4 w-4" aria-hidden /> {label}
@@ -64,22 +64,22 @@ export function Shell({ children }: { children: ReactNode }) {
   }, []);
 
   const brand = (
-    <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-white">
+    <Link href="/" className="flex items-center gap-2 text-xl font-semibold tracking-tight text-white">
       <LogoMark className="h-6 w-6" /> Docutile
     </Link>
   );
 
   return (
     <div className="min-h-screen md:flex">
-      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-white focus:p-2">Skip to content</a>
+      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-slate-950 focus:p-2 focus:text-white">Skip to content</a>
 
-      <aside aria-label="Sidebar" className="no-print hidden w-60 shrink-0 flex-col bg-slate-900 p-4 md:flex">
+      <aside aria-label="Sidebar" className="no-print hidden w-64 shrink-0 flex-col border-r border-white/10 bg-slate-950/55 p-4 backdrop-blur-2xl md:flex">
         <div className="mb-6 px-2">{brand}</div>
         <nav aria-label="Primary"><NavList pathname={pathname} /></nav>
         <p className="mt-auto px-2 text-xs text-slate-400">Local-first. Files stay in this browser.</p>
       </aside>
 
-      <header className="no-print bg-slate-900 p-3 md:hidden">
+      <header className="no-print border-b border-white/10 bg-slate-950/60 p-3 backdrop-blur-2xl md:hidden">
         <div className="flex items-center justify-between">
           {brand}
           <button

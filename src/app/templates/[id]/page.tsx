@@ -71,7 +71,7 @@ function Editor({ initial, isNew, usedBy }: { initial: Template; isNew: boolean;
       <PageHeader title={isNew ? "New template" : `Edit template`} description={usedBy > 0 ? `${usedBy} existing pack(s) use this template. They keep their own copy of the slots, so edits here only affect new packs.` : undefined}
         actions={<><LinkButton href="/templates">Cancel</LinkButton><Button variant="primary" onClick={save}>Save template</Button></>} />
       <div className="space-y-4">
-        <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 sm:grid-cols-2">
+        <section className="grid gap-4 rounded-lg border border-white/10 glass p-5 sm:grid-cols-2">
           <Field label="Template name" htmlFor="tpl-name" required error={nameError}>
             <TextInput id="tpl-name" value={t.name} onChange={(e) => setT({ ...t, name: e.target.value })} aria-invalid={!!nameError} aria-describedby={describedBy("tpl-name", nameError)} />
           </Field>
@@ -79,16 +79,16 @@ function Editor({ initial, isNew, usedBy }: { initial: Template; isNew: boolean;
           <div className="sm:col-span-2"><Field label="Description" htmlFor="tpl-desc"><TextArea id="tpl-desc" rows={2} value={t.description} onChange={(e) => setT({ ...t, description: e.target.value })} /></Field></div>
         </section>
 
-        <section className="rounded-lg border border-slate-200 bg-white p-5">
+        <section className="rounded-lg border border-white/10 glass p-5">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-base font-semibold">Document slots (in order)</h2>
             <Button size="sm" onClick={() => setDialog({ index: null })}><Plus className="h-4 w-4" aria-hidden /> Add slot</Button>
           </div>
-          {t.slots.length === 0 ? <p className="text-sm text-slate-600">No slots yet.</p> : (
-            <ol className="divide-y divide-slate-100">
+          {t.slots.length === 0 ? <p className="text-sm text-slate-300">No slots yet.</p> : (
+            <ol className="divide-y divide-white/10">
               {t.slots.map((s, i) => (
                 <li key={s.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
-                  <span className="w-6 text-slate-500">{i + 1}.</span>
+                  <span className="w-6 text-slate-400">{i + 1}.</span>
                   <span className="min-w-0 flex-1 break-words font-medium">{s.name}</span>
                   <Badge tone={s.required ? "required" : "neutral"}>{s.required ? "Required" : "Optional"}</Badge>
                   <div className="flex">

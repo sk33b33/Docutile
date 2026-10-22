@@ -23,8 +23,11 @@ function slot(
   };
 }
 
-function tpl(id: string, name: string, category: string, description: string, slots: TemplateSlot[]): Template {
-  return { id, name, category, description, slots, builtIn: true, createdAt: SEED_DATE, updatedAt: SEED_DATE };
+export const GENERAL_CATEGORY = "General business";
+
+/** `area` becomes the subcategory under "General business". */
+function tpl(id: string, name: string, area: string, description: string, slots: TemplateSlot[]): Template {
+  return { id, name, category: GENERAL_CATEGORY, subcategory: area, description, slots, builtIn: true, createdAt: SEED_DATE, updatedAt: SEED_DATE };
 }
 
 export { DOJ_CATEGORY } from "./doj";

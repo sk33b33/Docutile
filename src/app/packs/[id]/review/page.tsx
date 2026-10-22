@@ -105,18 +105,18 @@ export default function ReviewPage() {
       />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
-        <section aria-label="Pack contents" className="rounded-lg border border-slate-200 bg-white p-4">
+        <section aria-label="Pack contents" className="rounded-lg border border-white/10 glass p-4">
           <h2 className="text-base font-semibold">Contents in pack order</h2>
           {entries.length === 0 ? (
-            <p className="mt-2 text-sm text-slate-600">No files attached yet. <Link href={`/packs/${pack.id}`} className="text-blue-800 underline">Go to the builder</Link> to add documents.</p>
+            <p className="mt-2 text-sm text-slate-300">No files attached yet. <Link href={`/packs/${pack.id}`} className="text-cyan-200 underline">Go to the builder</Link> to add documents.</p>
           ) : (
-            <ol className="mt-3 divide-y divide-slate-100">
+            <ol className="mt-3 divide-y divide-white/10">
               {entries.map((e) => (
                 <li key={e.file.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
-                  <span className="w-6 text-slate-500">{e.position}.</span>
+                  <span className="w-6 text-slate-400">{e.position}.</span>
                   <div className="min-w-0 flex-1">
                     <p className="break-all font-medium">{e.file.displayName}</p>
-                    <p className="text-xs text-slate-600">{e.slot.name} · {formatBytes(e.file.sizeBytes)}</p>
+                    <p className="text-xs text-slate-300">{e.slot.name} · {formatBytes(e.file.sizeBytes)}</p>
                   </div>
                   <Badge tone={e.slot.required ? "required" : "neutral"}>{e.slot.required ? "Required" : "Optional"}</Badge>
                   {canMerge(e.file.originalName)
@@ -128,7 +128,7 @@ export default function ReviewPage() {
             </ol>
           )}
           {c.missing.length > 0 && (
-            <div className="mt-4 rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            <div className="mt-4 rounded border border-amber-400/40 bg-amber-400/10 p-3 text-sm text-amber-200">
               <p className="font-medium">Missing required documents (not in the list above):</p>
               <ul className="mt-1 list-disc pl-5">{c.missing.map((s) => <li key={s.id}>{s.name}</li>)}</ul>
             </div>
@@ -137,14 +137,14 @@ export default function ReviewPage() {
 
         <aside aria-label="Completeness and export" className="space-y-4">
           <CompletenessSummary c={c} linkMissing={false} />
-          <section className="no-print space-y-2 rounded-lg border border-slate-200 bg-white p-4">
+          <section className="no-print space-y-2 rounded-lg border border-white/10 glass p-4">
             <h2 className="text-sm font-semibold">Export</h2>
             <Button variant="primary" className="w-full" onClick={generate} disabled={!c.ready || busy} aria-describedby="export-help">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FileText className="h-4 w-4" aria-hidden />}
               {busy ? "Creating PDF…" : "Create & download PDF"}
             </Button>
             {busy && (
-              <div role="status" aria-live="polite" className="text-xs text-slate-700">
+              <div role="status" aria-live="polite" className="text-xs text-slate-200">
                 <p>{progress ? `${progress.done} of ${progress.total}: ${progress.label}` : "Reading files…"}</p>
                 <Button size="sm" className="mt-1" onClick={() => abortRef.current?.abort()}>Cancel export</Button>
               </div>
@@ -152,14 +152,14 @@ export default function ReviewPage() {
             {lastPdf && <Button className="w-full" onClick={() => previewBlob(lastPdf)}><Eye className="h-4 w-4" aria-hidden /> Open last PDF</Button>}
             <Button className="w-full" onClick={downloadManifest} disabled={!c.ready}><Download className="h-4 w-4" aria-hidden /> Download manifest (.txt)</Button>
             <Button className="w-full" onClick={() => window.print()}><Printer className="h-4 w-4" aria-hidden /> Print this review</Button>
-            <p id="export-help" className="text-xs text-slate-600">
+            <p id="export-help" className="text-xs text-slate-300">
               {c.ready
                 ? `The PDF has a cover sheet followed by ${mergeable.length} PDF/image file(s) in order.${separate.length ? ` ${separate.length} Word/Excel/PowerPoint/text file(s) cannot be converted in the browser; they are listed on the cover sheet and must be sent separately.` : ""}`
                 : "Export is disabled until every required document is attached."}
             </p>
-            <p className="text-xs text-slate-500">Files are processed in your browser and never uploaded. Docutile does not email or submit anything.</p>
+            <p className="text-xs text-slate-400">Files are processed in your browser and never uploaded. Docutile does not email or submit anything.</p>
           </section>
-          {note && <p role="status" className="rounded border border-blue-300 bg-blue-50 p-3 text-sm text-blue-900">{note}</p>}
+          {note && <p role="status" className="rounded border border-cyan-400/40 bg-cyan-400/10 p-3 text-sm text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.2)]">{note}</p>}
           {failures.length > 0 && (
             <ErrorBanner title="Some files could not be merged">
               <ul className="list-disc pl-5">

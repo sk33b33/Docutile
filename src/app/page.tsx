@@ -51,24 +51,24 @@ export default function DashboardPage() {
           {packs.map((p) => {
             const c = computeCompleteness(p.slots);
             return (
-              <li key={p.id} className="rounded-lg border border-slate-200 bg-white p-4">
+              <li key={p.id} className="rounded-lg border border-white/10 glass p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <h2 className="truncate text-base font-semibold">
-                      <Link href={`/packs/${p.id}`} className="text-blue-800 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-600">{p.name}</Link>
+                      <Link href={`/packs/${p.id}`} className="text-cyan-200 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">{p.name}</Link>
                     </h2>
-                    <p className="truncate text-sm text-slate-600">{p.organisationName}{p.referenceNumber && ` · Ref ${p.referenceNumber}`}</p>
+                    <p className="truncate text-sm text-slate-300">{p.organisationName}{p.referenceNumber && ` · Ref ${p.referenceNumber}`}</p>
                   </div>
                   <PackStatusBadge status={p.status} />
                 </div>
                 <div className="mt-3">
-                  <div className="mb-1 flex justify-between text-xs text-slate-600">
+                  <div className="mb-1 flex justify-between text-xs text-slate-300">
                     <span>{c.requiredComplete} of {c.requiredTotal} required documents</span>
                     <span>{c.percent}%</span>
                   </div>
                   <ProgressBar percent={c.percent} label={`${p.name} required documents complete`} />
                 </div>
-                <div className="mt-3 flex items-center justify-between gap-2 text-xs text-slate-500">
+                <div className="mt-3 flex items-center justify-between gap-2 text-xs text-slate-400">
                   <span>Updated {formatDateTime(p.updatedAt)}{p.dueDate && ` · Due ${formatDate(p.dueDate)}`}</span>
                   <Button size="sm" variant="ghost" onClick={() => setToDelete(p)} aria-label={`Delete pack ${p.name}`}>
                     <Trash2 className="h-4 w-4" aria-hidden /> Delete

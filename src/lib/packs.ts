@@ -34,6 +34,8 @@ export function createPack(meta: PackMetaInput, template: Template | null, now =
     templateId: template?.id ?? null,
     templateName: template?.name ?? "Custom checklist",
     templateSource: template?.source ? { ...template.source } : undefined,
+    templateChecklist: template?.checklist,
+    templateNote: template?.checklistNote,
     status: "draft",
     createdAt: ts,
     updatedAt: ts,

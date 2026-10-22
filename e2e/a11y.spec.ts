@@ -76,9 +76,15 @@ test("keyboard: reorder with the drag handle, dialog focus and Escape", async ({
 
   // dnd-kit keyboard sensor: Space to pick up, Arrow to move, Space to drop.
   await page.getByRole("button", { name: /^Reorder Cover letter/ }).focus();
+  // Wait for dnd-kit's screen-reader announcements between steps instead of racing it.
+  const announce = page.locator('[role="status"][aria-live="assertive"]');
+  const ids = async () => ((await announce.innerText()).match(/slot_[\w-]+/g) ?? []);
+  await page.keyboard.press("Space"); // pick up: announces the item over itself
+  await expect.poll(async () => (await ids()).length).toBe(2);
+  await page.keyboard.press("ArrowRight"); // move: announces the item over a different droppable
+  await expect.poll(async () => { const [a, b] = await ids(); return a !== b; }).toBe(true);
   await page.keyboard.press("Space");
-  await page.keyboard.press("ArrowRight");
-  await page.keyboard.press("Space");
+  await expect(announce).toContainText(/dropped/i);
   await expect.poll(async () => (await titles())[0]).toContain("Main document");
 
   // Native modal dialog: opens focused inside, Escape closes, focus returns to the trigger.

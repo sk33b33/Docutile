@@ -37,7 +37,7 @@ export default function SettingsPage() {
     <>
       <PageHeader title="Settings" />
       <div className="max-w-2xl space-y-6">
-        <section className="rounded-lg border border-slate-200 bg-white p-5">
+        <section className="rounded-lg border border-white/10 glass p-5">
           <h2 className="text-base font-semibold">File limits</h2>
           <form onSubmit={save} className="mt-3 space-y-3" noValidate>
             <Field label="Default maximum file size (MB)" htmlFor="max-size" error={error} hint="Applies to slots created from now on. Existing slots keep their own limit; edit a slot to change it.">
@@ -45,12 +45,12 @@ export default function SettingsPage() {
             </Field>
             <Button type="submit" variant="primary">Save</Button>
           </form>
-          <p className="mt-4 text-sm text-slate-700">Default accepted file types: {formatTypeList(DEFAULT_ACCEPTED_TYPES)}. Only PDF, PNG and JPG files are merged into the exported PDF; other formats are listed on the cover sheet and supplied separately because converting them needs a server-side service that is not part of this local version.</p>
+          <p className="mt-4 text-sm text-slate-200">Default accepted file types: {formatTypeList(DEFAULT_ACCEPTED_TYPES)}. Only PDF, PNG and JPG files are merged into the exported PDF; other formats are listed on the cover sheet and supplied separately because converting them needs a server-side service that is not part of this local version.</p>
         </section>
 
-        <section className="rounded-lg border border-slate-200 bg-white p-5">
+        <section className="rounded-lg border border-white/10 glass p-5">
           <h2 className="text-base font-semibold">Local storage</h2>
-          <p className="mt-2 text-sm text-slate-700">Drafts, files, templates and activity are stored in this browser using IndexedDB. They are not encrypted by Docutile, not backed up, and not shared with other people or devices. Clearing browser data, or using private browsing, can remove them. Download anything you need to keep.</p>
+          <p className="mt-2 text-sm text-slate-200">Drafts, files, templates and activity are stored in this browser using IndexedDB. They are not encrypted by Docutile, not backed up, and not shared with other people or devices. Clearing browser data, or using private browsing, can remove them. Download anything you need to keep.</p>
           <Button variant="danger" className="mt-4" onClick={() => setConfirmClear(true)}>Clear all local data…</Button>
         </section>
       </div>

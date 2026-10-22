@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
 
 const tones = {
-  neutral: "bg-slate-100 text-slate-700 border-slate-300",
-  required: "bg-amber-50 text-amber-900 border-amber-300",
-  success: "bg-green-50 text-green-800 border-green-300",
-  info: "bg-blue-50 text-blue-800 border-blue-300",
-  danger: "bg-red-50 text-red-800 border-red-300",
+  neutral: "bg-white/10 text-slate-200 border-white/20",
+  required: "bg-amber-400/10 text-amber-200 border-amber-400/40",
+  success: "bg-emerald-400/10 text-emerald-200 border-emerald-400/40",
+  info: "bg-cyan-400/10 text-cyan-200 border-cyan-400/40",
+  danger: "bg-red-400/10 text-red-200 border-red-400/40",
 };
 
 export function Badge({ tone = "neutral", icon, children }: { tone?: keyof typeof tones; icon?: ReactNode; children: ReactNode }) {

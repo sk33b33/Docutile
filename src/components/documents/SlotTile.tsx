@@ -78,21 +78,21 @@ export function SlotTile(props: Props) {
   }
 
   const border = error
-    ? "border-red-400"
+    ? "border-red-400/70 shadow-[0_0_22px_rgba(248,113,113,0.3)]"
     : over
-      ? "border-teal-600 bg-teal-50"
+      ? "border-cyan-300 bg-cyan-400/10 shadow-[0_0_34px_rgba(34,211,238,0.5)]"
       : complete
-        ? "border-green-300"
+        ? "border-emerald-400/50 shadow-[0_0_20px_rgba(52,211,153,0.18)]"
         : slot.required
-          ? "border-amber-300"
-          : "border-slate-200";
+          ? "border-amber-400/50"
+          : "border-white/15";
 
   return (
     <li
       ref={setNodeRef}
       id={`slot-${slot.id}`}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`rounded-lg border-2 bg-white p-4 ${border} ${isDragging ? "z-10 opacity-80 shadow-lg" : ""}`}
+      className={`rounded-xl border-2 glass p-4 ${border} ${isDragging ? "z-10 opacity-80 shadow-lg" : ""}`}
       onDragEnter={(e) => { if (hasFiles(e)) { e.preventDefault(); setOver(true); } }}
       onDragOver={(e) => { if (hasFiles(e)) { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; setOver(true); } }}
       onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setOver(false); }}
@@ -105,12 +105,12 @@ export function SlotTile(props: Props) {
           {...attributes}
           {...listeners}
           aria-label={`Reorder ${slot.name}. Press space to pick up, arrow keys to move.`}
-          className="-ml-1 mt-0.5 cursor-grab touch-none rounded p-1 text-slate-500 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-600"
+          className="-ml-1 mt-0.5 cursor-grab touch-none rounded p-1 text-slate-400 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300"
         >
           <GripVertical className="h-4 w-4" aria-hidden />
         </button>
         <div className="min-w-0 flex-1">
-          <h2 className="break-words text-sm font-semibold text-slate-900"><span className="mr-1 text-slate-500">{index + 1}.</span>{slot.name}</h2>
+          <h2 className="break-words text-sm font-semibold text-slate-50"><span className="mr-1 text-slate-400">{index + 1}.</span>{slot.name}</h2>
           <div className="mt-1 flex flex-wrap gap-1">
             <Badge tone={slot.required ? "required" : "neutral"}>{slot.required ? "Required" : "Optional"}</Badge>
             {slot.formRef && <Badge tone="info">{formLabel(slot.formRef)}</Badge>}
@@ -123,22 +123,22 @@ export function SlotTile(props: Props) {
         </div>
       </div>
 
-      {slot.description && <p className="mt-2 text-xs text-slate-600">{slot.description}</p>}
+      {slot.description && <p className="mt-2 text-xs text-slate-300">{slot.description}</p>}
 
       {slot.files.length > 0 && (
         <ul className="mt-3 space-y-2">
           {slot.files.map((f, i) => (
-            <li key={f.id} className="rounded-md border border-slate-200 bg-slate-50 p-2 text-sm">
+            <li key={f.id} className="rounded-md border border-white/10 bg-white/5 p-2 text-sm">
               {editingId === f.id ? (
                 <form onSubmit={(e) => { e.preventDefault(); finishRename(f); }} className="flex gap-1">
-                  <input autoFocus value={draftName} onChange={(e) => setDraftName(e.target.value)} onKeyDown={(e) => e.key === "Escape" && setEditingId(null)} aria-label="Display label" className="min-w-0 flex-1 rounded border border-slate-300 px-2 py-1 text-sm" />
+                  <input autoFocus value={draftName} onChange={(e) => setDraftName(e.target.value)} onKeyDown={(e) => e.key === "Escape" && setEditingId(null)} aria-label="Display label" className="min-w-0 flex-1 rounded border border-white/20 px-2 py-1 text-sm" />
                   <Button size="sm" type="submit" variant="primary">Save</Button>
                   <Button size="sm" onClick={() => setEditingId(null)} aria-label="Cancel rename"><X className="h-4 w-4" aria-hidden /></Button>
                 </form>
               ) : (
                 <>
-                  <p className="break-all font-medium text-slate-900">{f.displayName}</p>
-                  <p className="text-xs text-slate-600">
+                  <p className="break-all font-medium text-slate-50">{f.displayName}</p>
+                  <p className="text-xs text-slate-300">
                     {f.displayName !== f.originalName && <>{f.originalName} · </>}
                     {getExtension(f.originalName).toUpperCase()} · {formatBytes(f.sizeBytes)}
                   </p>
@@ -165,7 +165,7 @@ export function SlotTile(props: Props) {
       )}
 
       {(slot.files.length === 0 || slot.allowMultiple) && (
-        <div className={`mt-3 rounded-md border border-dashed p-3 text-center text-xs ${over ? "border-teal-600 text-teal-800" : "border-slate-300 text-slate-600"}`}>
+        <div className={`mt-3 rounded-md border border-dashed p-3 text-center text-xs ${over ? "border-cyan-300 text-cyan-100" : "border-white/20 text-slate-300"}`}>
           <p>{over ? "Drop to add file" : `Drag a file here or`}</p>
           <Button size="sm" className="mt-1" onClick={() => inputRef.current?.click()}>
             <Upload className="h-4 w-4" aria-hidden /> {slot.files.length ? "Add another file" : "Choose file"}
@@ -174,20 +174,20 @@ export function SlotTile(props: Props) {
         </div>
       )}
       {slot.files.length > 0 && !slot.allowMultiple && over && (
-        <p className="mt-2 text-xs text-teal-800">Drop to replace the current file (you will be asked to confirm).</p>
+        <p className="mt-2 text-xs text-cyan-200">Drop to replace the current file (you will be asked to confirm).</p>
       )}
 
       <input ref={inputRef} type="file" className="sr-only" tabIndex={-1} aria-hidden accept={accept} multiple={slot.allowMultiple} onChange={(e) => pick(e)} />
       <input ref={replaceRef} type="file" className="sr-only" tabIndex={-1} aria-hidden accept={accept} onChange={(e) => { const id = replaceId ?? undefined; setReplaceId(null); pick(e, id); }} />
 
       {error && (
-        <div role="alert" className="mt-3 flex items-start gap-2 rounded border border-red-300 bg-red-50 p-2 text-xs text-red-900">
+        <div role="alert" className="mt-3 flex items-start gap-2 rounded border border-red-400/50 bg-red-950/60 p-2 text-xs text-red-100">
           <p className="flex-1">{error}</p>
           <button onClick={() => props.onDismissError(slot.id)} aria-label="Dismiss error"><X className="h-3.5 w-3.5" aria-hidden /></button>
         </div>
       )}
 
-      <div className="mt-3 flex justify-end gap-1 border-t border-slate-100 pt-2">
+      <div className="mt-3 flex justify-end gap-1 border-t border-white/10 pt-2">
         <Button size="sm" variant="ghost" onClick={() => props.onEditSlot(slot)}><Pencil className="h-4 w-4" aria-hidden /> Edit slot</Button>
         <Button size="sm" variant="ghost" onClick={() => props.onRemoveSlot(slot)} aria-label={`Delete slot ${slot.name}`}><Trash2 className="h-4 w-4" aria-hidden /> Delete slot</Button>
       </div>

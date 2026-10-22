@@ -1,22 +1,45 @@
-import type { Template } from "@/types";
+import type { ChecklistStatus, Template } from "@/types";
 
 export const CATEGORY_NOTES: Record<string, string> = {
+  "General business": "Everyday document packs for suppliers, clients, compliance reviews and general submissions.",
   "South African DOJ":
-    "Department of Justice and Constitutional Development: Master's Offices (estates, trusts) and magistrate's courts (maintenance, protection orders). Checklists are transcribed from justice.gov.za; this is a preparation aid, not legal advice.",
+    "Department of Justice and Constitutional Development: services of the Master of the High Court. Checklists are transcribed from justice.gov.za; this is a preparation aid, not legal advice.",
+  "South African Courts":
+    "Services applied for at magistrate's courts. Checklists are transcribed from justice.gov.za; this is a preparation aid, not legal advice.",
 };
+
+export const CHECKLIST_LABEL: Record<ChecklistStatus, { label: string; help: string }> = {
+  published: { label: "Official list", help: "The source publishes a document list for this service." },
+  partial: { label: "Partly published", help: "The source describes the process or part of the list. The rest follows standard practice: confirm with the office." },
+  "form-only": { label: "Form only", help: "The source names the form but not the supporting documents: confirm with the office." },
+};
+
+export interface TemplateSubgroup {
+  name?: string;
+  templates: Template[];
+}
 
 export interface TemplateGroup {
   category: string;
   note?: string;
-  templates: Template[];
+  subgroups: TemplateSubgroup[];
+  count: number;
 }
 
-/** Groups templates by category, keeping first-seen order. */
+/** Groups templates by category, then subcategory, keeping first-seen order. */
 export function groupByCategory(templates: Template[]): TemplateGroup[] {
-  const groups = new Map<string, Template[]>();
+  const cats = new Map<string, Map<string, Template[]>>();
   for (const t of templates) {
-    const key = t.category?.trim() || "Other";
-    groups.set(key, [...(groups.get(key) ?? []), t]);
+    const cat = t.category?.trim() || "Other";
+    const sub = t.subcategory?.trim() ?? "";
+    const subs = cats.get(cat) ?? new Map<string, Template[]>();
+    subs.set(sub, [...(subs.get(sub) ?? []), t]);
+    cats.set(cat, subs);
   }
-  return [...groups].map(([category, list]) => ({ category, note: CATEGORY_NOTES[category], templates: list }));
+  return [...cats].map(([category, subs]) => ({
+    category,
+    note: CATEGORY_NOTES[category],
+    subgroups: [...subs].map(([name, list]) => ({ name: name || undefined, templates: list })),
+    count: [...subs.values()].reduce((n, l) => n + l.length, 0),
+  }));
 }

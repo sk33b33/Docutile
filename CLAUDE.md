@@ -6,7 +6,7 @@ You are building **Docutile**, an enterprise-style document pack compilation web
 1. First inspect the existing repository. If it is empty, scaffold the app. Do not overwrite existing work without checking.
 2. Build a genuinely usable application, not just a static mockup. All visible controls must work or be clearly disabled with an explanation.
 3. Work in small phases. After each phase, run available type checks, lint, tests, and build; fix failures before continuing.
-4. Keep the UI corporate, calm, accessible, responsive, and consistent. Do not use a flashy marketing-page aesthetic.
+4. The UI is deliberately futuristic: dark theme, translucent glass panels, neon cyan/violet glow, subtle ambient motion. Keep it accessible (WCAG AA contrast, visible focus, `prefers-reduced-motion` and `prefers-reduced-transparency` fallbacks, readable print output), responsive and consistent. Use the shared `.glass` / `.glass-strong` / `.glass-input` classes in `src/app/globals.css` instead of ad-hoc styles. No marketing-page copy or decorative illustrations.
 5. Use sensible defaults and make decisions without asking the user questions unless blocked by a consequential ambiguity.
 6. Keep components small and typed. Avoid one giant component. Use clear names and comments for non-obvious logic.
 7. Never invent successful uploads, exports, emails, or submissions. Show honest status and error states.

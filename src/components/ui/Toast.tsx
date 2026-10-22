@@ -24,9 +24,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const icon = { success: CheckCircle2, error: AlertCircle, info: Info };
   const color = {
-    success: "border-green-300 bg-green-50 text-green-900",
-    error: "border-red-300 bg-red-50 text-red-900",
-    info: "border-blue-300 bg-blue-50 text-blue-900",
+    success: "border-emerald-400/50 bg-emerald-950/80 text-emerald-100 shadow-[0_0_24px_rgba(52,211,153,0.3)]",
+    error: "border-red-400/60 bg-red-950/85 text-red-100 shadow-[0_0_24px_rgba(248,113,113,0.35)]",
+    info: "border-cyan-400/50 bg-slate-950/85 text-cyan-100 shadow-[0_0_24px_rgba(34,211,238,0.3)]",
   };
 
   return (
@@ -36,7 +36,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {items.map((t) => {
           const Icon = icon[t.tone];
           return (
-            <div key={t.id} role={t.tone === "error" ? "alert" : "status"} className={`flex items-start gap-2 rounded-md border p-3 text-sm shadow-md ${color[t.tone]}`}>
+            <div key={t.id} role={t.tone === "error" ? "alert" : "status"} className={`flex items-start gap-2 rounded-lg border p-3 text-sm backdrop-blur-xl ${color[t.tone]}`}>
               <Icon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
               <p className="flex-1 break-words">{t.message}</p>
               <button onClick={() => dismiss(t.id)} aria-label="Dismiss notification" className="rounded p-0.5 hover:bg-black/5">

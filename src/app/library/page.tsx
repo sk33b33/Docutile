@@ -29,17 +29,17 @@ export default function LibraryPage() {
       {rows.length === 0 ? (
         <EmptyState title="No documents yet">Files you attach to packs will be listed here.</EmptyState>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-white/10 glass">
           <table className="w-full text-left text-sm">
             <caption className="sr-only">Attached documents</caption>
-            <thead className="bg-slate-50 text-xs uppercase text-slate-600">
+            <thead className="bg-white/5 text-xs uppercase text-slate-300">
               <tr><th scope="col" className="p-3">File</th><th scope="col" className="p-3">Pack / slot</th><th scope="col" className="p-3">Size</th><th scope="col" className="p-3">Added</th><th scope="col" className="p-3"><span className="sr-only">Actions</span></th></tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-white/10">
               {rows.map(({ pack, slot, file }) => (
                 <tr key={file.id}>
                   <td className="p-3 break-all font-medium">{file.displayName}</td>
-                  <td className="p-3"><Link className="text-blue-800 underline" href={`/packs/${pack.id}`}>{pack.name}</Link> · {slot.name}</td>
+                  <td className="p-3"><Link className="text-cyan-200 underline" href={`/packs/${pack.id}`}>{pack.name}</Link> · {slot.name}</td>
                   <td className="p-3 whitespace-nowrap">{formatBytes(file.sizeBytes)}</td>
                   <td className="p-3 whitespace-nowrap">{formatDateTime(file.uploadedAt)}</td>
                   <td className="p-3"><Button size="sm" onClick={() => save(file)} aria-label={`Download ${file.displayName}`}><Download className="h-4 w-4" aria-hidden /></Button></td>

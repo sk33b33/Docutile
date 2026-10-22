@@ -13,11 +13,11 @@ export default function ActivityPage() {
       {activity.length === 0 ? (
         <EmptyState title="No activity yet">Events such as creating packs and attaching files will appear here.</EmptyState>
       ) : (
-        <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white">
+        <ul className="divide-y divide-white/10 rounded-lg border border-white/10 glass">
           {activity.slice(0, 500).map((e) => (
             <li key={e.id} className="flex flex-wrap items-baseline justify-between gap-2 p-3 text-sm">
-              <span className="min-w-0 break-words">{e.message}{name(e.packId) && <span className="text-slate-500"> · {name(e.packId)}</span>}</span>
-              <time dateTime={e.timestamp} className="whitespace-nowrap text-xs text-slate-500">{formatDateTime(e.timestamp)}</time>
+              <span className="min-w-0 break-words">{e.message}{name(e.packId) && <span className="text-slate-400"> · {name(e.packId)}</span>}</span>
+              <time dateTime={e.timestamp} className="whitespace-nowrap text-xs text-slate-400">{formatDateTime(e.timestamp)}</time>
             </li>
           ))}
         </ul>

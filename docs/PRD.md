@@ -102,14 +102,13 @@ Template editing should allow adding, renaming, deleting, reordering slots, and 
 - Provide a way to clear local app data with confirmation.
 
 ## 5. UX and visual direction
-- Enterprise SaaS style: clean white/light-gray surfaces, navy text, restrained blue/teal accent, clear status colors, subtle borders, consistent spacing.
+- Futuristic dark UI: deep navy background with ambient cyan/violet glow, translucent frosted-glass panels, neon accents and glowing focus/hover states. Status is conveyed by text and icons as well as colour.
 - Use a persistent left navigation on desktop and a compact mobile navigation.
 - Use a strong page title and a clear primary action.
-- Main pack builder should use a responsive grid of document tiles, with a pack summary/progress area.
+- Main pack builder uses a responsive grid of document tiles, with a pack summary/progress area.
 - Distinguish required and optional slots without relying on color alone.
 - Use concise, professional language.
-- Use proper focus states, semantic labels, keyboard access, and adequate contrast.
-- Avoid unnecessary animations, oversized rounded cards, gradients, decorative illustrations, and marketing copy.
+- Keep WCAG AA contrast, proper focus states, semantic labels and keyboard access. Honour `prefers-reduced-motion` and `prefers-reduced-transparency`, and print as plain black on white.
 - Show confirmation dialogs for destructive actions.
 - Toasts or inline messages should report actual outcomes.
 

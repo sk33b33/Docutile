@@ -13,6 +13,7 @@ import { newId } from "@/lib/id";
 import { packsUsingTemplate } from "@/lib/packs";
 import { cloneTemplateSlots } from "@/lib/templates";
 import { groupByCategory } from "@/lib/templates/categories";
+import { ChecklistBadge } from "@/components/templates/ChecklistBadge";
 import { SourceNote } from "@/components/templates/SourceNote";
 import type { Template } from "@/types";
 
@@ -53,44 +54,72 @@ export default function TemplatesPage() {
     catch (e) { notify("error", e instanceof Error ? e.message : "Template could not be reset."); }
   }
 
+  const groups = groupByCategory(templates);
+  const slug = (v: string) => v.replace(/\W+/g, "-").toLowerCase();
+
   return (
     <>
       <PageHeader
-        title="Templates"
-        description="Templates define the document slots a new pack starts with. Changing a template never alters packs already created from it."
+        title="Services & templates"
+        description="Every service Docutile can build a pack for, grouped by category, with the document tiles each one needs. Changing a template never alters packs already created from it."
         actions={<LinkButton href="/templates/new" variant="primary"><Plus className="h-4 w-4" aria-hidden /> New template</LinkButton>}
       />
-      {groupByCategory(templates).map((g) => (
-      <section key={g.category} aria-label={g.category} className="mb-8">
-        <h2 className="text-lg font-semibold text-slate-900">{g.category}</h2>
-        {g.note && <p className="mb-3 max-w-3xl text-sm text-slate-600">{g.note}</p>}
-      <ul className="mt-3 grid gap-4 md:grid-cols-2">
-        {g.templates.map((t) => (
-          <li key={t.id} className="rounded-lg border border-slate-200 bg-white p-4">
-            <div className="flex items-start justify-between gap-2">
-              <h3 className="text-base font-semibold">{t.name}</h3>
-              <Badge tone={t.builtIn ? "info" : "neutral"}>{t.builtIn ? (customisedTemplateIds.includes(t.id) ? "Built-in (customised)" : "Built-in") : "Custom"}</Badge>
-            </div>
-            <p className="mt-1 text-sm text-slate-600">{t.description}</p>
-            <p className="mt-2 text-xs text-slate-600">{t.slots.filter((s) => s.required).length} required · {t.slots.filter((s) => !s.required).length} optional · Used by {packsUsingTemplate(packs, t.id).length} pack(s)</p>
-            {t.source && <SourceNote source={t.source} className="mt-2" />}
-            <ol className="mt-2 list-decimal pl-5 text-xs text-slate-700">
-              {t.slots.map((s) => <li key={s.id}>{s.name}{!s.required && <span className="text-slate-500"> (optional)</span>}</li>)}
-            </ol>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <LinkButton size="sm" href={`/templates/${t.id}`}><Pencil className="h-4 w-4" aria-hidden /> Edit</LinkButton>
-              <Button size="sm" onClick={() => duplicate(t)}><Copy className="h-4 w-4" aria-hidden /> Duplicate</Button>
-              {t.builtIn && customisedTemplateIds.includes(t.id) && (
-                <Button size="sm" variant="ghost" onClick={() => setToReset(t)} aria-label={`Reset ${t.name} to default`}><RotateCcw className="h-4 w-4" aria-hidden /> Reset to default</Button>
-              )}
-              {!t.builtIn && (
-                <Button size="sm" variant="ghost" onClick={() => setToDelete(t)} aria-label={`Delete template ${t.name}`}><Trash2 className="h-4 w-4" aria-hidden /> Delete</Button>
-              )}
-            </div>
-          </li>
+      <nav aria-label="Categories" className="mb-6 flex flex-wrap gap-2">
+        {groups.map((g) => (
+          <a key={g.category} href={`#cat-${slug(g.category)}`} className="chip">{g.category} <span className="text-slate-400">({g.count})</span></a>
         ))}
-      </ul>
-      </section>
+      </nav>
+      {groups.map((g) => (
+        <section key={g.category} id={`cat-${slug(g.category)}`} aria-labelledby={`h-${slug(g.category)}`} className="mb-10 scroll-mt-6">
+          <h2 id={`h-${slug(g.category)}`} className="text-xl font-semibold text-slate-50">{g.category} <span className="text-base font-normal text-slate-400">· {g.count} service{g.count === 1 ? "" : "s"}</span></h2>
+          {g.note && <p className="mb-3 max-w-3xl text-sm text-slate-300">{g.note}</p>}
+          {g.subgroups.map((sg) => (
+            <div key={sg.name ?? "all"} className="mt-5">
+              {sg.name && <h3 className="mb-3 text-base font-semibold text-cyan-200">{sg.name} <span className="font-normal text-slate-400">· {sg.templates.length} service{sg.templates.length === 1 ? "" : "s"}</span></h3>}
+              <ul className="grid gap-4 md:grid-cols-2">
+                {sg.templates.map((t) => (
+                  <li key={t.id} className="glass rounded-xl p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      {sg.name ? <h4 className="text-base font-semibold text-slate-50">{t.name}</h4> : <h3 className="text-base font-semibold text-slate-50">{t.name}</h3>}
+                      <div className="flex shrink-0 flex-wrap justify-end gap-1">
+                        <ChecklistBadge status={t.checklist} />
+                        <Badge tone={t.builtIn ? "info" : "neutral"}>{t.builtIn ? (customisedTemplateIds.includes(t.id) ? "Built-in (customised)" : "Built-in") : "Custom"}</Badge>
+                      </div>
+                    </div>
+                    <p className="mt-1 text-sm text-slate-300">{t.description}</p>
+                    <p className="mt-2 text-xs text-slate-300">{t.slots.filter((s) => s.required).length} required · {t.slots.filter((s) => !s.required).length} optional · Used by {packsUsingTemplate(packs, t.id).length} pack(s)</p>
+                    {t.checklistNote && <p className="mt-2 text-xs text-amber-200">{t.checklistNote}</p>}
+                    <details className="mt-2 group">
+                      <summary className="cursor-pointer text-sm font-medium text-cyan-200 hover:text-cyan-100">Document tiles ({t.slots.length})</summary>
+                      <ol className="mt-2 space-y-1 text-xs text-slate-200">
+                        {t.slots.map((s, i) => (
+                          <li key={s.id} className="flex flex-wrap items-baseline gap-x-2">
+                            <span className="text-slate-400">{i + 1}.</span>
+                            <span className="font-medium">{s.name}</span>
+                            {s.formRef && <span className="text-cyan-200">[{s.formRef}]</span>}
+                            <span className={s.required ? "text-amber-200" : "text-slate-400"}>{s.required ? "Required" : "Optional"}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </details>
+                    {t.source && <SourceNote source={t.source} className="mt-2" />}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <LinkButton size="sm" variant="primary" href={`/packs/new?template=${t.id}`}>Create pack</LinkButton>
+                      <LinkButton size="sm" href={`/templates/${t.id}`}><Pencil className="h-4 w-4" aria-hidden /> Edit</LinkButton>
+                      <Button size="sm" onClick={() => duplicate(t)}><Copy className="h-4 w-4" aria-hidden /> Duplicate</Button>
+                      {t.builtIn && customisedTemplateIds.includes(t.id) && (
+                        <Button size="sm" variant="ghost" onClick={() => setToReset(t)} aria-label={`Reset ${t.name} to default`}><RotateCcw className="h-4 w-4" aria-hidden /> Reset to default</Button>
+                      )}
+                      {!t.builtIn && (
+                        <Button size="sm" variant="ghost" onClick={() => setToDelete(t)} aria-label={`Delete template ${t.name}`}><Trash2 className="h-4 w-4" aria-hidden /> Delete</Button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
       ))}
       <ConfirmDialog
         open={!!toReset} title="Reset to default?" confirmLabel="Reset template"

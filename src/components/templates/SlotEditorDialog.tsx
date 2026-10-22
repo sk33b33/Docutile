@@ -61,19 +61,19 @@ function SlotForm({ initial, validate, onSave, onClose }: Omit<Props, "open" | "
         <label className="flex items-center gap-2"><input type="checkbox" checked={draft.allowMultiple} onChange={(e) => setDraft({ ...draft, allowMultiple: e.target.checked })} /> Allow multiple files</label>
       </div>
       <fieldset>
-        <legend className="mb-1 text-sm font-medium text-slate-800">Accepted file types</legend>
+        <legend className="mb-1 text-sm font-medium text-slate-100">Accepted file types</legend>
         <div className="flex flex-wrap gap-x-4 gap-y-1">
           {DEFAULT_ACCEPTED_TYPES.map((t) => (
             <label key={t} className="flex items-center gap-1.5 uppercase"><input type="checkbox" checked={draft.acceptedTypes.includes(t)} onChange={() => toggleType(t)} /> {t}</label>
           ))}
         </div>
-        {errors.types && <p className="mt-1 text-xs font-medium text-red-700">{errors.types}</p>}
-        <p className="mt-1 text-xs text-slate-600">Only PDF, PNG and JPG files can be combined into the exported PDF.</p>
+        {errors.types && <p className="mt-1 text-xs font-medium text-red-300">{errors.types}</p>}
+        <p className="mt-1 text-xs text-slate-300">Only PDF, PNG and JPG files can be combined into the exported PDF.</p>
       </fieldset>
       <Field label="Maximum file size (MB)" htmlFor="slot-size" error={errors.size}>
         <TextInput id="slot-size" inputMode="decimal" value={mb} onChange={(e) => setMb(e.target.value)} aria-invalid={!!errors.size} aria-describedby={describedBy("slot-size", errors.size)} className="max-w-32" />
       </Field>
-      {errors.other && <p role="alert" className="text-sm font-medium text-red-700">{errors.other}</p>}
+      {errors.other && <p role="alert" className="text-sm font-medium text-red-300">{errors.other}</p>}
       <div className="flex justify-end gap-2">
         <Button onClick={onClose}>Cancel</Button>
         <Button type="submit" variant="primary">Save</Button>
