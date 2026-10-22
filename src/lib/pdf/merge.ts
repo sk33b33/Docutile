@@ -219,8 +219,8 @@ export async function mergePack(
   const copied = await final.copyPages(body, body.getPageIndices());
   copied.forEach((p) => final.addPage(p));
   final.setTitle(safePdfText(pack.name));
-  final.setProducer("PackFlow");
-  final.setCreator("PackFlow");
+  final.setProducer("Docutile");
+  final.setCreator("Docutile");
 
   return {
     bytes: await final.save(),

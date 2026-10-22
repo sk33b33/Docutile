@@ -1,7 +1,7 @@
-# Product Requirements — PackFlow
+# Product Requirements — Docutile
 
 ## 1. Product vision
-PackFlow is a corporate document compilation and submission-preparation tool. Users assemble a standardised document pack by uploading or dragging files into clearly labelled document tiles. The system checks completeness, supports ordering and review, and generates a collated PDF when the required documents are present.
+Docutile is a corporate document compilation and submission-preparation tool. Users assemble a standardised document pack by uploading or dragging files into clearly labelled document tiles. The system checks completeness, supports ordering and review, and generates a collated PDF when the required documents are present.
 
 ## 2. Target users
 - Operations and administration teams

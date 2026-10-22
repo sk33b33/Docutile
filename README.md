@@ -1,4 +1,4 @@
-# PackFlow
+# Docutile
 
 Document pack assembly for client and supplier submissions. Create a pack from a template (or a custom checklist), fill required/optional document tiles by picking or dragging files, resolve what is missing, reorder, review, and export a combined PDF.
 
@@ -48,7 +48,7 @@ npm run build && npm start
 
 - **PDF merging supports PDF, PNG and JPG only.** Images are placed on A4 pages. Word, Excel, PowerPoint and text files **cannot be converted in the browser**. They can be attached and validated, appear on the cover sheet under "Supplied separately (not included in this PDF)", and can be downloaded individually. Real conversion needs a server-side service (for example LibreOffice) that is not included.
 - Password-protected or corrupt PDFs cannot be merged. The export stops and names the files at fault rather than producing a partial PDF.
-- Data lives only in this browser profile: not encrypted by PackFlow, not backed up, not shared, and removed if browser data is cleared (or private browsing is closed).
+- Data lives only in this browser profile: not encrypted by Docutile, not backed up, not shared, and removed if browser data is cleared (or private browsing is closed).
 - File validation is client-side and signature-based. It is not a malware scan and not a security boundary.
 - Activity history is informational, not an immutable or compliance-grade audit trail.
 - No authentication, roles, cloud collaboration, e-signature, email delivery, or portal submission. These are out of scope and are not simulated.

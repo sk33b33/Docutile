@@ -1,6 +1,6 @@
-# Claude Code Instructions — PackFlow
+# Claude Code Instructions — Docutile
 
-You are building **PackFlow**, an enterprise-style document pack compilation web app. Read this file and all relevant files under `docs/` before coding.
+You are building **Docutile**, an enterprise-style document pack compilation web app. Read this file and all relevant files under `docs/` before coding.
 
 ## Working rules
 1. First inspect the existing repository. If it is empty, scaffold the app. Do not overwrite existing work without checking.

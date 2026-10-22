@@ -1,7 +1,7 @@
 import { StorageError, type Repository } from "./repository";
 import type { ActivityEvent, Pack, Settings, Template } from "@/types";
 
-const DB_NAME = "packflow";
+const DB_NAME = "docutile";
 /** Bump when stores change and add a step to `upgrade`. */
 const DB_VERSION = 1;
 
@@ -46,7 +46,7 @@ export class IndexedDbRepository implements Repository {
       req.onerror = () =>
         reject(new StorageError("Could not open local storage. Private browsing may be blocking it.", "unavailable"));
       req.onblocked = () =>
-        reject(new StorageError("Local storage is blocked by another open tab. Close other PackFlow tabs and reload.", "unavailable"));
+        reject(new StorageError("Local storage is blocked by another open tab. Close other Docutile tabs and reload.", "unavailable"));
     });
     this.dbPromise.catch(() => { this.dbPromise = null; });
     return this.dbPromise;

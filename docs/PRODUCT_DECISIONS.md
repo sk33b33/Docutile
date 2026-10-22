@@ -2,7 +2,7 @@
 
 These defaults keep the first build moving without blocking on discovery.
 
-- Product name: PackFlow (working name; easy to rename).
+- Product name: Docutile (working name; easy to rename).
 - Product type: desktop-first responsive web app.
 - Initial deployment mode: local-first MVP running in the user's browser.
 - User accounts: not included in MVP.

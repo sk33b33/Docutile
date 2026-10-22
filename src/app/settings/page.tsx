@@ -28,7 +28,7 @@ export default function SettingsPage() {
 
   async function clear() {
     setConfirmClear(false);
-    try { await clearAllData(); notify("success", "All local PackFlow data was deleted from this browser."); }
+    try { await clearAllData(); notify("success", "All local Docutile data was deleted from this browser."); }
     catch (err) { notify("error", err instanceof Error ? err.message : "Data could not be cleared."); return; }
     await log("data_cleared", "Cleared all local data");
   }
@@ -50,7 +50,7 @@ export default function SettingsPage() {
 
         <section className="rounded-lg border border-slate-200 bg-white p-5">
           <h2 className="text-base font-semibold">Local storage</h2>
-          <p className="mt-2 text-sm text-slate-700">Drafts, files, templates and activity are stored in this browser using IndexedDB. They are not encrypted by PackFlow, not backed up, and not shared with other people or devices. Clearing browser data, or using private browsing, can remove them. Download anything you need to keep.</p>
+          <p className="mt-2 text-sm text-slate-700">Drafts, files, templates and activity are stored in this browser using IndexedDB. They are not encrypted by Docutile, not backed up, and not shared with other people or devices. Clearing browser data, or using private browsing, can remove them. Download anything you need to keep.</p>
           <Button variant="danger" className="mt-4" onClick={() => setConfirmClear(true)}>Clear all local data…</Button>
         </section>
       </div>

@@ -157,7 +157,7 @@ export default function ReviewPage() {
                 ? `The PDF has a cover sheet followed by ${mergeable.length} PDF/image file(s) in order.${separate.length ? ` ${separate.length} Word/Excel/PowerPoint/text file(s) cannot be converted in the browser; they are listed on the cover sheet and must be sent separately.` : ""}`
                 : "Export is disabled until every required document is attached."}
             </p>
-            <p className="text-xs text-slate-500">Files are processed in your browser and never uploaded. PackFlow does not email or submit anything.</p>
+            <p className="text-xs text-slate-500">Files are processed in your browser and never uploaded. Docutile does not email or submit anything.</p>
           </section>
           {note && <p role="status" className="rounded border border-blue-300 bg-blue-50 p-3 text-sm text-blue-900">{note}</p>}
           {failures.length > 0 && (

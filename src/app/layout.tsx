@@ -5,7 +5,7 @@ import { ToastProvider } from "@/components/ui/Toast";
 import { Shell } from "@/components/layout/Shell";
 
 export const metadata: Metadata = {
-  title: { default: "PackFlow", template: "%s · PackFlow" },
+  title: { default: "Docutile", template: "%s · Docutile" },
   description: "Assemble, check and export document packs. Local-first: your files stay in this browser.",
 };
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };

@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { Activity, FileStack, FolderOpen, LayoutDashboard, LayoutTemplate, Menu, PlusCircle, Settings, X } from "lucide-react";
+import { Activity, FolderOpen, LayoutDashboard, LayoutTemplate, Menu, PlusCircle, Settings, X } from "lucide-react";
 import { useApp } from "@/components/providers/AppProvider";
 import { ErrorBanner, Loading } from "@/components/ui/States";
+import { LogoMark } from "./Logo";
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -64,7 +65,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
   const brand = (
     <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-white">
-      <FileStack className="h-5 w-5 text-teal-300" aria-hidden /> PackFlow
+      <LogoMark className="h-6 w-6" /> Docutile
     </Link>
   );
 
@@ -103,7 +104,7 @@ export function Shell({ children }: { children: ReactNode }) {
           {loadState === "loading" && <Loading label="Opening local storage…" />}
           {loadState === "error" && (
             <ErrorBanner title="Local storage is unavailable">
-              <p>{loadError} PackFlow keeps drafts and files in your browser, so it cannot work without it.</p>
+              <p>{loadError} Docutile keeps drafts and files in your browser, so it cannot work without it.</p>
             </ErrorBanner>
           )}
           {loadState === "ready" && children}
