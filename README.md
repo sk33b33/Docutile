@@ -60,6 +60,8 @@ npm run build && npm start
 
 `npm run test:e2e` runs Playwright end-to-end tests (in `e2e/`) against a production build: validation messages, picker upload, OS-style drag-and-drop onto a tile, replace confirmation, reorder, refresh persistence, review order, PDF download (page count and file name), export blocked when a required file is removed, custom slots, and no horizontal overflow at 390px. First run `npx playwright install chromium`, or point `PW_CHROMIUM_PATH` at an existing Chromium binary.
 
+Accessibility is checked in `e2e/a11y.spec.ts`: axe-core (WCAG 2.0/2.1/2.2 A and AA plus best-practice rules) runs on every page and on the key states (form errors, populated builder, dialogs, mobile menu), plus keyboard tests for tile reordering and dialog focus/Escape. Automated checks cannot catch everything; a manual screen-reader pass (NVDA/VoiceOver) has not been done.
+
 GitHub Actions (`.github/workflows/ci.yml`) runs lint, typecheck, unit tests and build, then the e2e tests, on every push to `main` and on pull requests.
 
 ## Layout

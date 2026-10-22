@@ -6,7 +6,7 @@ import { docx, fakePdf, pdfFile } from "./fixtures";
 const tile = (p: Page, name: string) =>
   p.locator("li[id^=slot-]").filter({ has: p.getByRole("heading", { name }) });
 const fileInput = (p: Page, name: string) => tile(p, name).locator("input[type=file]").first();
-const order = (p: Page) => p.locator("li[id^=slot-] h3").allInnerTexts();
+const order = (p: Page) => p.locator("li[id^=slot-] h2").allInnerTexts();
 
 async function createPack(p: Page, template = /General submission/) {
   await p.goto("/packs/new");

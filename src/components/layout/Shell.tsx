@@ -72,7 +72,7 @@ export function Shell({ children }: { children: ReactNode }) {
     <div className="min-h-screen md:flex">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-white focus:p-2">Skip to content</a>
 
-      <aside className="no-print hidden w-60 shrink-0 flex-col bg-slate-900 p-4 md:flex">
+      <aside aria-label="Sidebar" className="no-print hidden w-60 shrink-0 flex-col bg-slate-900 p-4 md:flex">
         <div className="mb-6 px-2">{brand}</div>
         <nav aria-label="Primary"><NavList pathname={pathname} /></nav>
         <p className="mt-auto px-2 text-xs text-slate-400">Local-first. Files stay in this browser.</p>

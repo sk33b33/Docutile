@@ -169,7 +169,7 @@ export default function PackBuilderPage() {
           )}
         </section>
 
-        <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+        <aside aria-label="Pack summary" className="space-y-4 lg:sticky lg:top-6 lg:self-start">
           <CompletenessSummary c={c} />
           <section className="rounded-lg border border-slate-200 bg-white p-4 text-xs text-slate-600">
             <h2 className="text-sm font-semibold text-slate-900">Pack order</h2>

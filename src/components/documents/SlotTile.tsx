@@ -105,7 +105,7 @@ export function SlotTile(props: Props) {
           <GripVertical className="h-4 w-4" aria-hidden />
         </button>
         <div className="min-w-0 flex-1">
-          <h3 className="break-words text-sm font-semibold text-slate-900"><span className="mr-1 text-slate-500">{index + 1}.</span>{slot.name}</h3>
+          <h2 className="break-words text-sm font-semibold text-slate-900"><span className="mr-1 text-slate-500">{index + 1}.</span>{slot.name}</h2>
           <div className="mt-1 flex flex-wrap gap-1">
             <Badge tone={slot.required ? "required" : "neutral"}>{slot.required ? "Required" : "Optional"}</Badge>
             <Badge tone={complete ? "success" : "neutral"}>{complete ? (slot.allowMultiple ? `${slot.files.length} file(s)` : "Uploaded") : "Empty"}</Badge>

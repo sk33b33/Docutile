@@ -127,7 +127,7 @@ export default function ReviewPage() {
           )}
         </section>
 
-        <aside className="space-y-4">
+        <aside aria-label="Completeness and export" className="space-y-4">
           <CompletenessSummary c={c} linkMissing={false} />
           <section className="no-print space-y-2 rounded-lg border border-slate-200 bg-white p-4">
             <h2 className="text-sm font-semibold">Export</h2>

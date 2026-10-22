@@ -22,7 +22,7 @@ export function CompletenessSummary({ c, linkMissing = true }: { c: Completeness
               <p className="mt-1 text-xs">Missing required documents:</p>
               <ul className="mt-1 list-disc pl-5 text-xs">
                 {c.missing.map((s) => (
-                  <li key={s.id}>{linkMissing ? <a href={`#slot-${s.id}`} className="underline">{s.name}</a> : s.name}</li>
+                  <li key={s.id}>{linkMissing ? <a href={`#slot-${s.id}`} className="inline-block py-1.5 underline">{s.name}</a> : s.name}</li>
                 ))}
               </ul>
             </>
