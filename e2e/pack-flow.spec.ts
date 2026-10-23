@@ -291,3 +291,71 @@ test("data saved under the old 'packflow' database is migrated to 'docutile' and
   expect(names).not.toContain("packflow");
   expect(names).toContain("docutile");
 });
+
+test("waiting note: a missing document can be marked as waiting but still blocks readiness", async ({ page }) => {
+  await createPack(page);
+  await tile(page, "Cover letter").getByRole("button", { name: "Mark as waiting…" }).click();
+  await page.getByRole("button", { name: "Save note" }).click();
+  await expect(page.getByText(/Say what you are waiting for/)).toBeVisible();
+  await page.locator("#waiting-note").fill("Applied at Home Affairs");
+  await page.locator("#waiting-date").fill("2030-01-15");
+  await page.getByRole("button", { name: "Save note" }).click();
+  await expect(tile(page, "Cover letter").getByText(/Applied at Home Affairs/)).toBeVisible();
+  await expect(page.getByText("0 of 2 required").first()).toBeVisible(); // still missing
+  await expect(page.getByText("Not ready")).toBeVisible();
+  await expect(page.getByText(/Waiting: Applied at Home Affairs/).first()).toBeVisible();
+
+  // Persists, shows on the dashboard, and is cleared when the file arrives.
+  await page.reload();
+  await expect(tile(page, "Cover letter").getByText(/Applied at Home Affairs/)).toBeVisible();
+  await page.goto("/");
+  await expect(page.getByText("1 document waiting")).toBeVisible();
+  await page.getByRole("link", { name: "Q1 onboarding" }).click();
+  await fileInput(page, "Cover letter").setInputFiles(await pdfFile("letter.pdf", 1));
+  await expect(tile(page, "Cover letter").getByText("letter.pdf").first()).toBeVisible();
+  await expect(tile(page, "Cover letter").getByText(/Applied at Home Affairs/)).toHaveCount(0);
+});
+
+test("dashboard: due-date badges, sort by due date, search, and duplicate with files", async ({ page }) => {
+  const make = async (name: string, due: string) => {
+    await page.goto("/packs/new");
+    await page.locator("#pack-name").fill(name);
+    await page.locator("#pack-organisationName").fill("Acme");
+    await page.locator("#pack-dueDate").fill(due);
+    await page.getByRole("radio", { name: /General submission/ }).check();
+    await page.getByRole("button", { name: "Create pack" }).click();
+    await page.waitForURL(/\/packs\/pack_/);
+  };
+  const iso = (offsetDays: number) => { const d = new Date(); d.setDate(d.getDate() + offsetDays); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+  await make("Later pack", iso(30));
+  await make("Overdue pack", iso(-2));
+  await make("Soon pack", iso(3));
+  await fileInput(page, "Cover letter").setInputFiles(await pdfFile("findme-letter.pdf", 1));
+  await expect(tile(page, "Cover letter").getByText("findme-letter.pdf").first()).toBeVisible();
+
+  await page.goto("/");
+  await expect(page.getByText("Overdue by 2 days")).toBeVisible();
+  await expect(page.getByText("Due in 3 days")).toBeVisible();
+
+  await page.getByLabel("Sort by").selectOption("due");
+  const titles = () => page.locator("ul > li h2").allInnerTexts();
+  expect(await titles()).toEqual(["Overdue pack", "Soon pack", "Later pack"]);
+
+  await page.getByLabel("Search packs").fill("findme");
+  await expect(page.getByText("1 of 3 packs match.")).toBeVisible();
+  expect(await titles()).toEqual(["Soon pack"]);
+  await page.getByLabel("Search packs").fill("zzz-nothing");
+  await expect(page.getByText("No packs match your search")).toBeVisible();
+  await page.getByLabel("Search packs").fill("");
+
+  await page.getByRole("button", { name: "Duplicate pack Soon pack" }).click();
+  await page.getByRole("button", { name: "Copy with files" }).click();
+  await page.waitForURL(/\/packs\/pack_/);
+  await expect(page.getByRole("heading", { name: "Soon pack (copy)" })).toBeVisible();
+  await expect(tile(page, "Cover letter").getByText("findme-letter.pdf").first()).toBeVisible();
+
+  // Library search finds the file in both packs.
+  await page.goto("/library");
+  await page.getByLabel("Search documents").fill("findme");
+  await expect(page.getByText("2 of 2 documents match.")).toBeVisible();
+});

@@ -14,6 +14,7 @@ import { CompletenessSummary } from "@/components/packs/CompletenessSummary";
 import { PackStatusBadge } from "@/components/packs/PackStatusBadge";
 import { usePackEditor } from "@/components/packs/usePackEditor";
 import { SlotTile } from "@/components/documents/SlotTile";
+import { WaitingDialog } from "@/components/documents/WaitingDialog";
 import { SourceNote } from "@/components/templates/SourceNote";
 import { SlotEditorDialog, type SlotDraft } from "@/components/templates/SlotEditorDialog";
 import { Button, LinkButton } from "@/components/ui/Button";
@@ -41,6 +42,7 @@ export default function PackBuilderPage() {
   const [removeSlotPrompt, setRemoveSlotPrompt] = useState<DocumentSlot | null>(null);
   const [slotDialog, setSlotDialog] = useState<SlotDialog>(null);
   const [metaOpen, setMetaOpen] = useState(false);
+  const [waitingSlot, setWaitingSlot] = useState<DocumentSlot | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -171,6 +173,8 @@ export default function PackBuilderPage() {
                       onRemoveSlot={setRemoveSlotPrompt}
                       onMoveSlot={(from, to) => ed.moveSlot(from, to).catch((e) => fail(e, "Could not reorder."))}
                       onDismissError={(sid) => setError(sid, null)}
+                      onEditWaiting={setWaitingSlot}
+                      onClearWaiting={(sl) => ed.setWaiting(sl.id, null).then(() => notify("success", `Cleared the waiting note on ${sl.name}.`)).catch((e) => fail(e, "Could not clear the note."))}
                     />
                   ))}
                 </ul>
@@ -205,6 +209,17 @@ export default function PackBuilderPage() {
           />
         )}
       </Dialog>
+
+      <WaitingDialog
+        slot={waitingSlot}
+        onClose={() => setWaitingSlot(null)}
+        onSave={async (note, expectedBy) => {
+          const sl = waitingSlot;
+          setWaitingSlot(null);
+          if (!sl) return;
+          try { await ed.setWaiting(sl.id, { note, expectedBy }); notify("success", `Marked ${sl.name} as waiting. It still counts as missing.`); } catch (e) { fail(e, "The note could not be saved."); }
+        }}
+      />
 
       <SlotEditorDialog
         open={!!slotDialog}

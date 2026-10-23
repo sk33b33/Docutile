@@ -285,3 +285,46 @@ describe("pack backup", () => {
     expect(backupFileName("Estate of J. Citizen / 2026", new Date("2026-10-23T10:00:00Z"))).toBe("EstateOfJCitizen2026_Backup_2026-10-23.docutile");
   });
 });
+
+import { dueStatus, sortPacks } from "@/lib/due";
+import { libraryRows, normalize, searchLibrary, searchPacks } from "@/lib/search";
+
+describe("dueStatus", () => {
+  const now = new Date(2026, 9, 23, 15, 30); // 23 Oct 2026, afternoon
+  it("classifies dates relative to today", () => {
+    expect(dueStatus("", now).kind).toBe("none");
+    expect(dueStatus("nonsense", now).kind).toBe("none");
+    expect(dueStatus("2026-10-20", now)).toMatchObject({ kind: "overdue", days: -3, label: "Overdue by 3 days" });
+    expect(dueStatus("2026-10-22", now).label).toBe("Overdue by 1 day");
+    expect(dueStatus("2026-10-23", now)).toMatchObject({ kind: "today", label: "Due today" });
+    expect(dueStatus("2026-10-24", now)).toMatchObject({ kind: "soon", label: "Due tomorrow" });
+    expect(dueStatus("2026-10-30", now)).toMatchObject({ kind: "soon", days: 7 });
+    expect(dueStatus("2026-10-31", now)).toMatchObject({ kind: "later", days: 8 });
+  });
+  it("sorts by due date, undated last, then by last update", () => {
+    const mk = (id: string, due: string, upd: string) => ({ ...pack([]), id, dueDate: due, updatedAt: upd });
+    const list = [mk("none-new", "", "2026-10-02"), mk("late", "2026-12-01", "2026-10-01"), mk("early", "2026-11-01", "2026-10-01"), mk("none-old", "", "2026-09-01")];
+    expect(sortPacks(list, "due").map((p) => p.id)).toEqual(["early", "late", "none-new", "none-old"]);
+    expect(sortPacks(list, "updated").map((p) => p.id)).toEqual(["none-new", "late", "early", "none-old"]);
+  });
+});
+
+describe("search", () => {
+  const a = { ...pack([slot("s1", true, [file("Death-Certificate.pdf")], { name: "Death certificate", formRef: "J294" })]), id: "a", name: "Estate of Nkosi", referenceNumber: "EST-2026/114" };
+  const b = { ...pack([slot("s2", true, [file("lease.pdf")], { name: "Lease" })]), id: "b", name: "Café Müller onboarding", organisationName: "Müller GmbH" };
+  it("normalises accents and case", () => expect(normalize("Café MÜLLER")).toBe("cafe muller"));
+  it("matches pack fields, slot names, form numbers and file names; all words must match", () => {
+    expect(searchPacks([a, b], "").length).toBe(2);
+    expect(searchPacks([a, b], "nkosi").map((p) => p.id)).toEqual(["a"]);
+    expect(searchPacks([a, b], "est-2026/114").map((p) => p.id)).toEqual(["a"]);
+    expect(searchPacks([a, b], "j294").map((p) => p.id)).toEqual(["a"]);
+    expect(searchPacks([a, b], "cafe muller").map((p) => p.id)).toEqual(["b"]);
+    expect(searchPacks([a, b], "lease nkosi")).toEqual([]);
+  });
+  it("searches files in the library", () => {
+    const rows = libraryRows([a, b]);
+    expect(rows).toHaveLength(2);
+    expect(searchLibrary(rows, "certificate").map((r) => r.file.originalName)).toEqual(["Death-Certificate.pdf"]);
+    expect(searchLibrary(rows, "muller lease")).toHaveLength(1);
+  });
+});

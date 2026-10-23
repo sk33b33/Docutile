@@ -6,7 +6,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Download, Eye, GripVertical, Pencil, Replace, Trash2, Upload, X } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { formatBytes, formatTypeList, getExtension } from "@/lib/format";
+import { formatBytes, formatDate, formatTypeList, getExtension } from "@/lib/format";
 import { PREVIEWABLE } from "@/lib/download";
 import type { AttachedFile, DocumentSlot } from "@/types";
 
@@ -21,6 +21,8 @@ export interface SlotTileHandlers {
   onRemoveSlot: (slot: DocumentSlot) => void;
   onMoveSlot: (from: number, to: number) => void;
   onDismissError: (slotId: string) => void;
+  onEditWaiting: (slot: DocumentSlot) => void;
+  onClearWaiting: (slot: DocumentSlot) => void;
 }
 
 interface Props extends SlotTileHandlers {
@@ -179,6 +181,23 @@ export function SlotTile(props: Props) {
 
       <input ref={inputRef} type="file" className="sr-only" tabIndex={-1} aria-hidden accept={accept} multiple={slot.allowMultiple} onChange={(e) => pick(e)} />
       <input ref={replaceRef} type="file" className="sr-only" tabIndex={-1} aria-hidden accept={accept} onChange={(e) => { const id = replaceId ?? undefined; setReplaceId(null); pick(e, id); }} />
+
+      {slot.files.length === 0 && (
+        slot.waiting ? (
+          <div className="mt-3 rounded-md border border-amber-400/40 bg-amber-400/10 p-2 text-xs text-amber-100">
+            <p><strong>Waiting:</strong> {slot.waiting.note}{slot.waiting.expectedBy && <> · expected {formatDate(slot.waiting.expectedBy)}</>}</p>
+            <p className="mt-0.5 text-amber-200/80">Still counts as missing until you add the file.</p>
+            <div className="mt-1 flex gap-1">
+              <Button size="sm" variant="ghost" onClick={() => props.onEditWaiting(slot)}>Edit note</Button>
+              <Button size="sm" variant="ghost" onClick={() => props.onClearWaiting(slot)}>Clear</Button>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-2 text-center">
+            <Button size="sm" variant="ghost" onClick={() => props.onEditWaiting(slot)}>Mark as waiting…</Button>
+          </div>
+        )
+      )}
 
       {error && (
         <div role="alert" className="mt-3 flex items-start gap-2 rounded border border-red-400/50 bg-red-950/60 p-2 text-xs text-red-100">

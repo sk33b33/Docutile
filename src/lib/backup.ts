@@ -73,6 +73,12 @@ function validateFile(f: unknown): AttachedFile {
   };
 }
 
+function validateWaiting(w: unknown): DocumentSlot["waiting"] {
+  const o = w as Record<string, unknown> | undefined;
+  if (!o || !isStr(o.note)) return undefined;
+  return { note: o.note, expectedBy: isStr(o.expectedBy) ? o.expectedBy : "", since: isStr(o.since) ? o.since : "" };
+}
+
 function validateSlot(s: unknown): DocumentSlot {
   const o = s as Record<string, unknown>;
   if (!o || !isStr(o.id) || !isStr(o.name) || typeof o.required !== "boolean" || !isStrArr(o.acceptedTypes) || !isNum(o.maxFileSizeBytes) || !Array.isArray(o.files)) {
@@ -83,6 +89,7 @@ function validateSlot(s: unknown): DocumentSlot {
     description: isStr(o.description) ? o.description : "", required: o.required, acceptedTypes: o.acceptedTypes,
     maxFileSizeBytes: o.maxFileSizeBytes, allowMultiple: o.allowMultiple === true,
     formRef: isStr(o.formRef) ? o.formRef : undefined, files: o.files.map(validateFile),
+    waiting: validateWaiting(o.waiting),
   };
 }
 

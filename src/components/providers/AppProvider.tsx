@@ -26,6 +26,8 @@ interface AppContextValue {
   deletePack: (id: string) => Promise<void>;
   /** Validates a backup file and adds its pack under new ids. Throws BackupError or StorageError. */
   importBackup: (file: Blob) => Promise<Pack>;
+  /** Copies a pack as a new draft, with or without its files. Throws StorageError on failure. */
+  duplicatePack: (id: string, withFiles: boolean) => Promise<Pack>;
   saveTemplate: (t: Template) => Promise<void>;
   deleteTemplate: (id: string) => Promise<void>;
   saveSettings: (s: Settings) => Promise<void>;
@@ -128,6 +130,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [repo, savePack, log],
   );
 
+  const duplicatePack = useCallback(
+    async (id: string, withFiles: boolean) => {
+      const source = packs.find((p) => p.id === id);
+      if (!source) throw new Error("That pack no longer exists.");
+      const written: string[] = [];
+      try {
+        const slots = [];
+        for (const s of source.slots) {
+          const files = [];
+          if (withFiles) {
+            for (const f of s.files) {
+              const blob = await repo.getBlob(f.blobKey);
+              if (!blob) throw new Error(`"${f.displayName}" is missing from this browser's storage, so the pack cannot be copied with its files.`);
+              const blobKey = newId("blob");
+              await repo.putBlob(blobKey, blob);
+              written.push(blobKey);
+              files.push({ ...f, id: newId("file"), blobKey });
+            }
+          }
+          slots.push({ ...s, id: newId("slot"), files });
+        }
+        const ts = new Date().toISOString();
+        const copy: Pack = { ...source, id: newId("pack"), name: `${source.name} (copy)`, status: "draft", createdAt: ts, updatedAt: ts, exportedAt: null, slots };
+        const saved = await savePack(copy);
+        await log("pack_created", `Duplicated "${source.name}"${withFiles ? " with its files" : " without files"}`, saved.id);
+        return saved;
+      } catch (e) {
+        await repo.deleteBlobs(written).catch(() => undefined);
+        throw e;
+      }
+    },
+    [packs, repo, savePack, log],
+  );
+
   const saveTemplate = useCallback(
     async (t: Template) => {
       await repo.saveTemplate(t);
@@ -165,7 +201,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const value: AppContextValue = {
     repo, loadState, loadError, packs, templates, customisedTemplateIds, activity, settings,
-    savePack, deletePack, importBackup, saveTemplate, deleteTemplate, saveSettings, log, clearAllData, reload,
+    savePack, deletePack, importBackup, duplicatePack, saveTemplate, deleteTemplate, saveSettings, log, clearAllData, reload,
   };
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

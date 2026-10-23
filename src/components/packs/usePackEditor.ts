@@ -9,7 +9,7 @@ import { validateFile } from "@/lib/validation/files";
 import { computeCompleteness } from "@/lib/validation/pack";
 import { MIME_BY_EXTENSION } from "@/lib/constants";
 import { getExtension } from "@/lib/format";
-import type { AttachedFile, DocumentSlot, Pack } from "@/types";
+import type { AttachedFile, DocumentSlot, Pack, WaitingNote } from "@/types";
 import type { SlotDraft } from "@/components/templates/SlotEditorDialog";
 
 export interface AttachResult {
@@ -85,6 +85,8 @@ export function usePackEditor(packId: string) {
           const slots = mapSlot(current.slots, slotId, (s) => ({
             ...s,
             files: old ? s.files.map((f) => (f.id === old.id ? attached : f)) : [...s.files, attached],
+            waiting: undefined, // the document has arrived
+
           }));
           await commit(current, slots);
         } catch (e) {
@@ -118,6 +120,19 @@ export function usePackEditor(packId: string) {
         if (!name) return;
         await commit(current, mapSlot(current.slots, slotId, (s) => ({ ...s, files: s.files.map((f) => (f.id === fileId ? { ...f, displayName: name } : f)) })));
         await log("file_renamed", `Renamed a document label to "${name}"`, current.id);
+      }),
+    [run, commit, log],
+  );
+
+  /** Marks a missing document as applied for / on its way (or clears the note). It never counts as present. */
+  const setWaiting = useCallback(
+    (slotId: string, waiting: Omit<WaitingNote, "since"> | null) =>
+      run(async (current) => {
+        const slot = current.slots.find((s) => s.id === slotId);
+        if (!slot) return;
+        const note: WaitingNote | undefined = waiting ? { ...waiting, since: new Date().toISOString() } : undefined;
+        await commit(current, mapSlot(current.slots, slotId, (s) => ({ ...s, waiting: note })));
+        await log("slot_updated", waiting ? `Marked "${slot.name}" as waiting: ${waiting.note}` : `Cleared the waiting note on "${slot.name}"`, current.id);
       }),
     [run, commit, log],
   );
@@ -204,5 +219,5 @@ export function usePackEditor(packId: string) {
     [run, savePack, log],
   );
 
-  return { pack, attachFile, removeFile, renameFile, moveFile, moveSlot, addSlot, updateSlot, removeSlot, updateMeta, saveDraft, markExported };
+  return { pack, attachFile, setWaiting, removeFile, renameFile, moveFile, moveSlot, addSlot, updateSlot, removeSlot, updateMeta, saveDraft, markExported };
 }

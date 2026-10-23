@@ -1,6 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo, useState } from "react";
+import { Search } from "lucide-react";
+import { inputClass } from "@/components/ui/Field";
+import { libraryRows, searchLibrary } from "@/lib/search";
 import { Download } from "lucide-react";
 import { useApp } from "@/components/providers/AppProvider";
 import { Button } from "@/components/ui/Button";
@@ -13,7 +17,9 @@ import type { AttachedFile } from "@/types";
 export default function LibraryPage() {
   const { packs, repo } = useApp();
   const { notify } = useToast();
-  const rows = packs.flatMap((p) => p.slots.flatMap((s) => s.files.map((f) => ({ pack: p, slot: s, file: f }))));
+  const [query, setQuery] = useState("");
+  const all = useMemo(() => libraryRows(packs), [packs]);
+  const rows = useMemo(() => searchLibrary(all, query), [all, query]);
 
   async function save(f: AttachedFile) {
     try {
@@ -26,8 +32,20 @@ export default function LibraryPage() {
   return (
     <>
       <PageHeader title="Document library" description="Every file attached to a pack in this browser. This is a read-only index, not shared storage." />
-      {rows.length === 0 ? (
+      {all.length > 0 && (
+        <div className="mb-4 max-w-md">
+          <label htmlFor="lib-search" className="mb-1 block text-sm font-medium text-slate-100">Search documents</label>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden />
+            <input id="lib-search" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="File name, document, pack or client" className={`${inputClass} pl-9`} autoComplete="off" />
+          </div>
+          <p role="status" className="mt-1 text-xs text-slate-300">{query ? `${rows.length} of ${all.length} documents match.` : `${all.length} document${all.length === 1 ? "" : "s"}.`}</p>
+        </div>
+      )}
+      {all.length === 0 ? (
         <EmptyState title="No documents yet">Files you attach to packs will be listed here.</EmptyState>
+      ) : rows.length === 0 ? (
+        <EmptyState title="No documents match your search">Try a different word, or clear the search box.</EmptyState>
       ) : (
         <div className="relative overflow-x-auto rounded-xl border border-white/10 glass">
           <table className="w-full text-left text-sm">

@@ -72,7 +72,17 @@ export interface DocumentSlot {
   maxFileSizeBytes: number;
   allowMultiple: boolean;
   formRef?: string;
+  /** Set when a missing document has been applied for and is on its way. Does NOT count as present. */
+  waiting?: WaitingNote;
   files: AttachedFile[];
+}
+
+export interface WaitingNote {
+  note: string;
+  /** YYYY-MM-DD, optional. */
+  expectedBy: string;
+  /** ISO timestamp when the note was set. */
+  since: string;
 }
 
 /** Slot order is the array order of `Pack.slots`. */
