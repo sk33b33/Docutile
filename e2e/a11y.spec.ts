@@ -118,6 +118,9 @@ test("reflow: no horizontal scrolling at 320 CSS px (WCAG 1.4.10) on every main 
   for (const [path, marker] of pages) {
     await page.goto(path);
     await expect(page.getByRole("heading", { name: marker, exact: true }).first()).toBeVisible();
+    // Force a wide fallback font so the result does not depend on which fonts the machine has
+    // (CI's fallback font is wider than a typical desktop's, which once hid an overflow locally).
+    await page.addStyleTag({ content: '*{font-family:"DejaVu Sans",Verdana,sans-serif !important}' });
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, `horizontal overflow on ${path}`).toBeLessThanOrEqual(1);
   }

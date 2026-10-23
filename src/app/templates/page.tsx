@@ -79,9 +79,9 @@ export default function TemplatesPage() {
               <ul className="grid gap-4 md:grid-cols-2">
                 {sg.templates.map((t) => (
                   <li key={t.id} className="glass rounded-xl p-4">
-                    <div className="flex items-start justify-between gap-2">
-                      {sg.name ? <h4 className="text-base font-semibold text-slate-50">{t.name}</h4> : <h3 className="text-base font-semibold text-slate-50">{t.name}</h3>}
-                      <div className="flex shrink-0 flex-wrap justify-end gap-1">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      {sg.name ? <h4 className="min-w-0 flex-1 basis-40 break-words text-base font-semibold text-slate-50">{t.name}</h4> : <h3 className="min-w-0 flex-1 basis-40 break-words text-base font-semibold text-slate-50">{t.name}</h3>}
+                      <div className="flex flex-wrap justify-end gap-1">
                         <ChecklistBadge status={t.checklist} />
                         <Badge tone={t.builtIn ? "info" : "neutral"}>{t.builtIn ? (customisedTemplateIds.includes(t.id) ? "Built-in (customised)" : "Built-in") : "Custom"}</Badge>
                       </div>
