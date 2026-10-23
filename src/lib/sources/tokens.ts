@@ -1,0 +1,39 @@
+/**
+ * Form numbers (J294, JM21, MBU 09(A) ...) as they appear in official DOJ pages and in Docutile's checklists.
+ * Used by the source-change check to confirm every form a checklist names still exists on the official pages.
+ */
+const FORM_TOKEN = /\b(?:J\d{2,3}[A-Z]?|JM\d{1,3}(?:_\d+)?|MBU\s?0?\d{1,2}\s?\(?[A-Z]?\)?)(?![A-Za-z0-9])/gi;
+
+/** "MBU 09 (A)" and "mbu09a" both become "MBU09A". */
+export function normalizeToken(raw: string): string {
+  return raw.replace(/[^A-Za-z0-9_]/g, "").toUpperCase();
+}
+
+export function extractFormTokens(text: string): string[] {
+  return [...new Set((text.match(FORM_TOKEN) ?? []).map(normalizeToken))].sort();
+}
+
+/** Plain text of an HTML page: scripts, styles and tags removed, entities decoded for the few we meet. */
+export function htmlToText(html: string): string {
+  return html
+    .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;|&#160;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&ndash;|&#8211;|&mdash;/g, "-")
+    .replace(/\s+/g, " ");
+}
+
+/** "Updated: 31/10/2024" -> "2024-10-31" (day/month/year, as the Master's pages write it). */
+export function pageUpdatedIso(text: string): string | null {
+  const m = text.match(/Updated:?\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/i);
+  return m ? `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}` : null;
+}
+
+const MONTHS: Record<string, string> = { jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06", jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12" };
+
+/** "31 Oct 2024" (how templates record it) -> "2024-10-31". */
+export function templateDateIso(label: string): string | null {
+  const m = label.match(/(\d{1,2})\s+([A-Za-z]{3})[a-z]*\s+(\d{4})/);
+  return m && MONTHS[m[2].toLowerCase()] ? `${m[3]}-${MONTHS[m[2].toLowerCase()]}-${m[1].padStart(2, "0")}` : null;
+}

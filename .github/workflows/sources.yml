@@ -1,0 +1,24 @@
+name: DOJ source check
+
+# Re-reads the official justice.gov.za pages the checklists were transcribed from and fails when a page is
+# unreachable, a form number disappears, an "Updated" stamp moves, or the set of forms changes.
+on:
+  schedule:
+    - cron: "43 4 * * 1" # Mondays, 04:43 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sources:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - run: npm ci
+      - run: npm run check:sources

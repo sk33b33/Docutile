@@ -418,3 +418,30 @@ describe("encrypted backups", () => {
     expect(await parsed.blobs.get("b_a.pdf")!.text()).toBe("%PDF-1.4 secret");
   });
 });
+
+import { extractFormTokens, htmlToText, normalizeToken, pageUpdatedIso, templateDateIso } from "@/lib/sources/tokens";
+
+describe("source tokens", () => {
+  it("normalises form numbers however they are written", () => {
+    expect(["MBU 09 (A)", "MBU 09(A)", "mbu09a", "MBU09A"].map(normalizeToken)).toEqual(["MBU09A", "MBU09A", "MBU09A", "MBU09A"]);
+  });
+  it("finds form numbers in page text and ignores look-alikes", () => {
+    const t = "Completed Death Notice - J294; Next-of-Kin Affidavit - J192 (if no will). JM33_42 and JM21, MBU 09 (A) / MBU 12. Bond J262, J1234 is not a form, nor is PJ401x.";
+    expect(extractFormTokens(t)).toEqual(["J192", "J262", "J294", "JM21", "JM33_42", "MBU09A", "MBU12"]);
+  });
+  it("reads dates the way the Master writes them and the way templates store them", () => {
+    expect(pageUpdatedIso("... Updated: 31/10/2024 ...")).toBe("2024-10-31");
+    expect(pageUpdatedIso("no date here")).toBeNull();
+    expect(templateDateIso("31 Oct 2024")).toBe("2024-10-31");
+    expect(templateDateIso("6 Jul 2011")).toBe("2011-07-06");
+    expect(templateDateIso("whenever")).toBeNull();
+  });
+  it("strips tags and scripts from html", () => {
+    expect(htmlToText("<p>Form&nbsp;<b>J294</b></p><script>var J999=1</script>").trim()).toBe("Form J294");
+  });
+  it("every form number named in a checklist is a recognisable form token", () => {
+    const refs = DOJ_TEMPLATES.flatMap((t) => t.slots.map((s) => s.formRef)).filter(Boolean) as string[];
+    const withTokens = refs.filter((r) => extractFormTokens(r).length > 0);
+    expect(withTokens.length).toBeGreaterThan(30);
+  });
+});

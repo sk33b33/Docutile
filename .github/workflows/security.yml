@@ -1,0 +1,28 @@
+name: Security
+
+on:
+  schedule:
+    - cron: "17 5 * * 1" # Mondays, 05:17 UTC
+  pull_request:
+    paths: [package.json, package-lock.json]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Production dependencies are what ships to users: any high or critical advisory fails the build.
+      - name: Audit production dependencies
+        run: npm run audit
+      # Development tooling does not ship. Report its advisories without failing, so they stay visible.
+      - name: Audit development dependencies (informational)
+        run: npm audit --audit-level=high || true

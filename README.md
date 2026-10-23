@@ -67,6 +67,12 @@ npm run build && npm start
 - No authentication, roles, cloud collaboration, e-signature, email delivery, or portal submission. These are out of scope and are not simulated.
 - PDF merging runs in a Web Worker so the page stays responsive on large packs, and an export can be cancelled. Very large packs are still limited by browser memory, since every file is held in memory while merging.
 
+## Maintenance and monitoring
+
+- **DOJ source check** (`npm run check:sources`): re-reads every official page the checklists came from and fails if a page is unreachable, a form number named in a checklist disappears, a page's "Updated" stamp moves past the one recorded, or the set of form numbers on a page changes from `tests/live/source-snapshot.json`. After reviewing a change and updating the checklists, run `npm run check:sources:update`. It runs weekly in GitHub Actions (`sources.yml`). It needs `curl`, and `pdftotext` (poppler-utils) for PDF sources.
+- **Security**: `npm run audit` fails on high or critical advisories in production dependencies (currently none). `security.yml` runs it weekly and on dependency changes, and lists development-tool advisories without failing: the one open item is `braces`, reached only through ESLint's Next config, which does not ship. Dependabot proposes weekly npm and GitHub Actions updates.
+- CI uses least-privilege permissions, cancels superseded runs, and runs actions on Node 24.
+
 ## Tests
 
 `npm test` runs Vitest unit tests covering file validation (type, size, empty, signature, duplicates), required-document completeness and readiness, slot/file ordering, template-to-pack copying, file-name sanitising, in-memory repository behaviour (blob cleanup, quota errors), and PDF merging against real PDFs/PNGs (order, page ranges, cover sheet spill-over, corrupt/missing files, non-mergeable files, non-Latin text).

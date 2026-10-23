@@ -11,7 +11,10 @@
     "test": "vitest run",
     "check": "npm run lint && npm run typecheck && npm test && npm run build",
     "test:e2e": "playwright test",
-    "test:e2e:large": "RUN_LARGE=1 playwright test e2e/large-files.spec.ts"
+    "test:e2e:large": "RUN_LARGE=1 playwright test e2e/large-files.spec.ts",
+    "check:sources": "vitest run --config vitest.live.config.ts",
+    "check:sources:update": "UPDATE_SNAPSHOT=1 vitest run --config vitest.live.config.ts",
+    "audit": "npm audit --omit=dev --audit-level=high"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
