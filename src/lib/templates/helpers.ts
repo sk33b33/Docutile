@@ -23,6 +23,7 @@ export interface TplOptions {
   subcategory?: string;
   checklist: ChecklistStatus;
   checklistNote?: string;
+  nextSteps?: string[];
 }
 
 export function tpl(id: string, name: string, description: string, source: TemplateSource, opts: TplOptions, slots: TemplateSlot[]): Template {

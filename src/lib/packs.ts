@@ -36,6 +36,7 @@ export function createPack(meta: PackMetaInput, template: Template | null, now =
     templateSource: template?.source ? { ...template.source } : undefined,
     templateChecklist: template?.checklist,
     templateNote: template?.checklistNote,
+    templateNextSteps: template?.nextSteps ? [...template.nextSteps] : undefined,
     status: "draft",
     createdAt: ts,
     updatedAt: ts,

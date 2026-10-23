@@ -43,6 +43,8 @@ export interface Template {
   checklist?: ChecklistStatus;
   /** What is and is not covered by the checklist, shown to users. */
   checklistNote?: string;
+  /** What happens after the pack is assembled, as the source describes it. Shown on the pack as a short list. */
+  nextSteps?: string[];
   slots: TemplateSlot[];
   builtIn: boolean;
   source?: TemplateSource;
@@ -99,6 +101,7 @@ export interface Pack {
   templateSource?: TemplateSource;
   templateChecklist?: ChecklistStatus;
   templateNote?: string;
+  templateNextSteps?: string[];
   status: PackStatus;
   createdAt: string;
   updatedAt: string;
@@ -134,4 +137,8 @@ export interface ActivityEvent {
 
 export interface Settings {
   defaultMaxFileSizeBytes: number;
+  /** When each pack was last exported as a backup file (pack id to ISO time). */
+  lastBackups?: Record<string, string>;
+  /** Hide the backup reminder until this ISO time. */
+  backupSnoozedUntil?: string;
 }

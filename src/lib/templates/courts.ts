@@ -8,6 +8,22 @@ export const DOMESTIC_VIOLENCE = "Domestic violence";
 const M = { category: COURTS_CATEGORY, subcategory: MAINTENANCE } as const;
 const D = { category: COURTS_CATEGORY, subcategory: DOMESTIC_VIOLENCE } as const;
 
+/** From the 2026 DOJ maintenance leaflet. */
+const MAINTENANCE_STEPS = [
+  "Go to any magistrate's court on a working day. The service is free and you do not need an attorney.",
+  "The maintenance clerk helps you fill in the application and checks what you have. The application is registered and given a file number even if some documents are missing.",
+  "The Maintenance Officer holds an informal enquiry. The court serves a directive or subpoena on the respondent with the date to appear.",
+  "If the parties agree, the magistrate confirms the agreement as a maintenance order. If they do not agree on the amount, the magistrate holds a formal hearing and decides.",
+];
+
+/** From the DOJ domestic violence service page. Its form numbers are outdated, so only the process is used. */
+const PROTECTION_ORDER_STEPS = [
+  "Apply at the magistrate's court nearest to where you live or work. You can apply at any time, including outside court hours, on weekends and on public holidays. The service is free.",
+  "The clerk of the court certifies the application and takes it in.",
+  "The magistrate sets a date for you to return to court and prepares a notice telling the respondent about the order and the date.",
+  "After the court appearance, the magistrate may grant the protection order.",
+];
+
 const mntFormOnly = "The DOJ maintenance forms page names the form but lists no supporting documents. The maintenance clerk assists at the court: confirm what to attach.";
 const dvFormOnly = "The DOJ domestic violence forms page names the form but lists no supporting documents: confirm with the clerk of the court.";
 
@@ -32,7 +48,7 @@ export const COURT_TEMPLATES: Template[] = [
     "Apply for a maintenance order",
     "Documents to lodge a maintenance claim at any local magistrate's court where the complainant lives or works. The service is free and the maintenance clerk assists; per the DOJ leaflet an application is registered even if you do not yet have all the documents.",
     SOURCES.maintenance,
-    { ...M, checklist: "published", checklistNote: "Official list from the 2026 leaflet. Form A (J101) is confirmed on the DOJ maintenance forms page. The last two tiles come from the older DOJ maintenance FAQ page." },
+    { ...M, nextSteps: MAINTENANCE_STEPS, checklist: "published", checklistNote: "Official list from the 2026 leaflet. Form A (J101) is confirmed on the DOJ maintenance forms page. The last two tiles come from the older DOJ maintenance FAQ page." },
     [
       slot("doj_mn_form_a", "Application for maintenance order", false, "Form A. The maintenance clerk helps you complete it at the court, so it may not be ready beforehand.", "Form A · J101"),
       slot("doj_mn_id", "Complainant's identity document", true, "Identity document of the person applying."),
@@ -60,7 +76,7 @@ export const COURT_TEMPLATES: Template[] = [
     "Apply for a protection order",
     "Apply at the nearest magistrate's court or High Court. The service is free. The application (Form 06) is made under oath: the commissioner's certificate (Part B) must be completed. The court issues the interim protection order itself (Form 12).",
     SOURCES.dvForms,
-    { ...D, checklist: "published", checklistNote: "Form numbers are from the DOJ forms page under the Domestic Violence Regulations 2022 (published April 2023; Form 06 updated 7 March 2025). The older DOJ service page (last updated 2011) used different numbers and is outdated. Evidence is invited by Form 06 itself: it says to attach documents, photos, witness statements and medical records." },
+    { ...D, nextSteps: PROTECTION_ORDER_STEPS, checklist: "published", checklistNote: "Form numbers are from the DOJ forms page under the Domestic Violence Regulations 2022 (published April 2023; Form 06 updated 7 March 2025). The older DOJ service page (last updated 2011) used different numbers and is outdated. Evidence is invited by Form 06 itself: it says to attach documents, photos, witness statements and medical records." },
     [
       slot("doj_dv_f6", "Application for protection order", true, "Part A is completed by the complainant or the person applying on their behalf; Part B is the commissioner of oaths' certificate.", "Form 06 · J480"),
       slot("doj_dv_consent", "Consent for another person to apply", false, "Applies if someone else applies on the victim's behalf (the Act exempts minors and people who cannot consent).", "Form 07 · J965"),

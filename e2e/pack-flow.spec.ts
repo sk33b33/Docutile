@@ -291,7 +291,7 @@ test("data saved under the old 'packflow' database is migrated to 'docutile' and
   });
   await page.reload();
   await expect(page.getByRole("heading", { name: "Legacy pack" })).toBeVisible();
-  await page.getByRole("link", { name: "Legacy pack" }).click();
+  await page.getByRole("heading", { name: "Legacy pack" }).getByRole("link").click();
   await expect(page.getByText("old.pdf").first()).toBeVisible();
   const names = await page.evaluate(async () => (await indexedDB.databases()).map((d) => d.name));
   expect(names).not.toContain("packflow");

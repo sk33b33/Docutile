@@ -58,6 +58,9 @@ npm run build && npm start
 - **Settings**: default maximum file size (25 MB by default), explanation of limits, and "Clear all local data" with confirmation.
 - **Backup and import**: "Export backup" on a pack downloads one `.docutile` file (pack details plus every file); "Import backup" on the dashboard validates it strictly (header, sizes, and each file's content against its extension) and adds it as a new draft under fresh ids, so nothing is overwritten. Backups are not encrypted.
 - **Persistence**: IndexedDB (versioned) for pack metadata, templates, activity, settings, and file Blobs (stored as Blobs, never JSON). Changes save automatically. Quota and unavailable-storage errors are surfaced to the user. Data saved under the pre-rename `packflow` database is migrated once to `docutile`.
+- **Backup reminder**: the dashboard shows a banner when a pack that holds files has changed since its last backup (or was never backed up) and that backup, or the pack's creation, is 7 or more days old. It can be postponed for 7 days. Backup times are kept in this browser's settings; nothing is sent anywhere.
+- **Printable cover sheet**: "Cover sheet" on a pack opens a plain black-on-white checklist of every tile in order (required or optional, attached, waiting or missing, with form numbers and file names) for paper submissions or a hand-over. The exported PDF has its own cover sheet and contents page as well.
+- **After you lodge the pack**: services whose DOJ source describes the process (the two deceased-estate reports, maintenance orders and protection orders) show a short list of what happens next. It is summarised from that source and copied into the pack when it is created, so packs made before this feature do not show it.
 
 ## Limitations (please read)
 

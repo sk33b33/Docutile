@@ -481,6 +481,8 @@ describe("clearActivity", () => {
   });
 });
 
+import { packsNeedingBackup, recordBackup, snoozeUntil } from "@/lib/backupReminder";
+import { buildCoverRows } from "@/lib/cover";
 import { sessionStatus } from "@/lib/auth/session";
 import { authEnabled, isEmailAllowed, isPublicPath, missingAuthSettings, safeCallbackPath, userStorageName } from "@/lib/auth/config";
 
@@ -544,5 +546,69 @@ describe("session expiry notice", () => {
   it("reports an ended session", () => {
     expect(sessionStatus(at(0), now)?.state).toBe("expired");
     expect(sessionStatus(at(-H), now)?.state).toBe("expired");
+  });
+});
+
+describe("backup reminder", () => {
+  const DAY = 86_400_000;
+  const now = Date.parse("2026-03-01T00:00:00Z");
+  const iso = (daysAgo: number) => new Date(now - daysAgo * DAY).toISOString();
+  const withFile = (id: string, created: number, updated: number) => {
+    const p = pack([slot("s", true, [file(`${id}.pdf`)])]);
+    return { ...p, id, createdAt: iso(created), updatedAt: iso(updated) };
+  };
+  it("ignores packs with no files", () => {
+    const p = { ...pack([slot("s", true)]), id: "e", createdAt: iso(30), updatedAt: iso(30) };
+    expect(packsNeedingBackup([p], {}, now)).toEqual([]);
+  });
+  it("leaves a young pack alone and reminds about an old one that was never backed up", () => {
+    expect(packsNeedingBackup([withFile("a", 2, 1)], {}, now)).toEqual([]);
+    expect(packsNeedingBackup([withFile("b", 10, 1)], {}, now).map((p) => p.id)).toEqual(["b"]);
+  });
+  it("does not nag when the backup already covers the latest changes", () => {
+    const p = withFile("c", 30, 5);
+    expect(packsNeedingBackup([p], { lastBackups: { c: iso(2) } }, now)).toEqual([]);
+  });
+  it("reminds again when a pack changed after an old backup, but not when the backup is recent", () => {
+    const p = withFile("d", 30, 1);
+    expect(packsNeedingBackup([p], { lastBackups: { d: iso(20) } }, now).map((x) => x.id)).toEqual(["d"]);
+    expect(packsNeedingBackup([p], { lastBackups: { d: iso(3) } }, now)).toEqual([]);
+  });
+  it("stays quiet while snoozed and returns after", () => {
+    const p = withFile("e", 30, 1);
+    const snoozedUntil = new Date(now + DAY).toISOString();
+    expect(packsNeedingBackup([p], { backupSnoozedUntil: snoozedUntil }, now)).toEqual([]);
+    expect(packsNeedingBackup([p], { backupSnoozedUntil: snoozedUntil }, now + 2 * DAY).length).toBe(1);
+    expect(Date.parse(snoozeUntil(now))).toBe(now + 7 * DAY);
+  });
+  it("records a backup per pack without losing other settings", () => {
+    const s = recordBackup({ defaultMaxFileSizeBytes: 5, lastBackups: { x: "t" } }, "p1", new Date(now));
+    expect(s).toEqual({ defaultMaxFileSizeBytes: 5, lastBackups: { x: "t", p1: new Date(now).toISOString() } });
+  });
+});
+
+describe("printable cover sheet rows", () => {
+  it("lists every tile in order with an honest status", () => {
+    const p = pack([
+      slot("a", true, [file("id.pdf")], { name: "ID" }),
+      slot("b", true, [], { name: "Proof" }),
+      slot("c", false, [], { name: "Extra" }),
+      { ...slot("d", true, [], { name: "Letter" }), waiting: { note: "Applied", expectedBy: "2026-03-10", since: "2026-03-01T00:00:00Z" } },
+    ]);
+    const rows = buildCoverRows(p);
+    expect(rows.map((r) => [r.n, r.status])).toEqual([[1, "attached"], [2, "missing"], [3, "not-supplied"], [4, "waiting"]]);
+    expect(rows[0].detail).toContain("id.pdf");
+    expect(rows[3].detail).toContain("Applied");
+  });
+});
+
+describe("next steps from the source", () => {
+  it("are on exactly the services whose source describes the process, and copy into a new pack", () => {
+    const withSteps = BUILT_IN_TEMPLATES.filter((t) => t.nextSteps?.length).map((t) => t.id).sort();
+    expect(withSteps).toEqual(["tpl_doj_estate_over_250k", "tpl_doj_estate_under_250k", "tpl_doj_maintenance", "tpl_doj_protection_order"]);
+    const t = BUILT_IN_TEMPLATES.find((x) => x.id === "tpl_doj_protection_order")!;
+    const p = createPack({ name: "n", organisationName: "o", submissionType: "", referenceNumber: "", dueDate: "", notes: "" }, t);
+    expect(p.templateNextSteps).toEqual(t.nextSteps);
+    expect(p.templateNextSteps).not.toBe(t.nextSteps); // a copy, so editing a pack never edits the template
   });
 });

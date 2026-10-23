@@ -107,6 +107,7 @@ function validatePack(p: unknown): Pack {
     templateSource: o.templateSource as Pack["templateSource"],
     templateChecklist: o.templateChecklist as Pack["templateChecklist"],
     templateNote: isStr(o.templateNote) ? o.templateNote : undefined,
+    templateNextSteps: Array.isArray(o.templateNextSteps) && o.templateNextSteps.every(isStr) ? (o.templateNextSteps as string[]) : undefined,
     status: "draft", createdAt: str(o.createdAt), updatedAt: str(o.updatedAt), exportedAt: null,
     slots: o.slots.map(validateSlot),
   };

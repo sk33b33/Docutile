@@ -15,13 +15,22 @@ const policyValue = "Supports the inventory: confirmation of the value of an ins
 
 const durban = " Listed on the Durban Master's Office checklist; confirm with your own Master's Office.";
 
+/** From the DOJ "How to report a deceased estate" page. */
+const reportSteps = (letters: string) => [
+  "Report the estate within 14 days of the death, to the Master's Office where the deceased normally lived.",
+  "Post or hand in the documents at the Master's Office. Faxed documents are not accepted. Original wills and codicils must be handed in.",
+  "The Master opens a file in the deceased's name. An examiner checks the documents for correctness, and the assistant Master considers the will, if there is one.",
+  letters,
+  "Some Master's offices also take reports through the DOJ online deceased estate system (dojonline.justice.gov.za). It is being rolled out in stages.",
+];
+
 export const ESTATE_TEMPLATES: Template[] = [
   tpl(
     "tpl_doj_estate_over_250k",
     "Report a deceased estate: over R250 000",
     "Reporting documents for the Master of the High Court (letters of executorship). Report within 14 days of death to the Master's Office where the deceased normally lived.",
     SOURCES.estatesReport,
-    { ...E, checklist: "published", checklistNote: "Official reporting list for estates over R250 000, plus optional tiles from the DOJ forms page and the Durban Master's Office checklist. Note: the Durban checklist asks for the J190 where the estate is above R125 000, not R250 000: confirm the threshold with your Master's Office." },
+    { ...E, nextSteps: reportSteps("The Master issues the letters of executorship, and the full process of the Administration of Estates Act follows."), checklist: "published", checklistNote: "Official reporting list for estates over R250 000, plus optional tiles from the DOJ forms page and the Durban Master's Office checklist. Note: the Durban checklist asks for the J190 where the estate is above R125 000, not R250 000: confirm the threshold with your Master's Office." },
     [
       slot("doj_eo_j294", "Death notice", true, "Completed Death Notice, in English or Afrikaans.", "J294"),
       slot("doj_eo_death", "Death certificate", true, "Original or certified copy of the death certificate."),
@@ -48,7 +57,7 @@ export const ESTATE_TEMPLATES: Template[] = [
     "Report a deceased estate: under R250 000",
     "Reporting documents where the Master may issue letters of authority (section 18(3), Administration of Estates Act) instead of letters of executorship. Service points only handle estates with no valid will and a gross value below R125 000 (where PEAS is not in use).",
     SOURCES.estatesReport,
-    { ...E, checklist: "published", checklistNote: "Official reporting list for estates under R250 000, plus optional tiles from the DOJ forms page and the Durban Master's Office checklist, which treats R125 000 as its threshold: confirm with your Master's Office." },
+    { ...E, nextSteps: reportSteps("The Master issues the letter of authority (section 18(3)) or the letter of appointment as Master's representative."), checklist: "published", checklistNote: "Official reporting list for estates under R250 000, plus optional tiles from the DOJ forms page and the Durban Master's Office checklist, which treats R125 000 as its threshold: confirm with your Master's Office." },
     [
       slot("doj_eu_j294", "Death notice", true, "Completed Death Notice, in English or Afrikaans.", "J294"),
       slot("doj_eu_death", "Death certificate", true, "Original or certified copy of the death certificate."),

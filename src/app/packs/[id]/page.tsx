@@ -6,9 +6,11 @@ import {
   DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent,
 } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { Archive, ClipboardList, Pencil, Plus, Save } from "lucide-react";
+import { Archive, ClipboardList, Pencil, Plus, Printer, Save } from "lucide-react";
 import { BackupError, backupFileName, createBackup } from "@/lib/backup";
 import { encryptBlob } from "@/lib/backup-crypto";
+import { recordBackup } from "@/lib/backupReminder";
+import { NextSteps } from "@/components/packs/NextSteps";
 import { BackupExportDialog } from "@/components/packs/BackupDialogs";
 import { useApp } from "@/components/providers/AppProvider";
 import { PackMetaForm } from "@/components/packs/PackMetaForm";
@@ -34,7 +36,7 @@ type SlotDialog = { mode: "add" } | { mode: "edit"; slot: DocumentSlot } | null;
 
 export default function PackBuilderPage() {
   const { id } = useParams<{ id: string }>();
-  const { repo, settings } = useApp();
+  const { repo, settings, saveSettings } = useApp();
   const ed = usePackEditor(id);
   const { notify } = useToast();
   const pack = ed.pack;
@@ -112,6 +114,8 @@ export default function PackBuilderPage() {
       const blob = password ? await encryptBlob(plain, password) : plain;
       downloadBlob(blob, backupFileName(pack!.name));
       setBackupOpen(false);
+      // The backup file is already saved; failing to note it only means the reminder may come back sooner.
+      await saveSettings(recordBackup(settings, pack!.id)).catch(() => undefined);
       notify("success", password ? "Encrypted backup downloaded. Keep the password safe: it cannot be recovered." : "Backup downloaded. It is not encrypted: store it somewhere safe.");
     } catch (err) {
       throw err instanceof BackupError || err instanceof Error ? err : new Error("The backup could not be created.");
@@ -153,6 +157,7 @@ export default function PackBuilderPage() {
               <Save className="h-4 w-4" aria-hidden /> Save draft
             </Button>
             <Button onClick={() => setBackupOpen(true)}><Archive className="h-4 w-4" aria-hidden /> Export backup</Button>
+            <LinkButton href={`/packs/${pack.id}/cover`}><Printer className="h-4 w-4" aria-hidden /> Cover sheet</LinkButton>
             <LinkButton href={`/packs/${pack.id}/review`} variant="primary"><ClipboardList className="h-4 w-4" aria-hidden /> Review &amp; export</LinkButton>
           </>
         }
@@ -204,6 +209,7 @@ export default function PackBuilderPage() {
             <p className="mt-2">Template: {pack.templateName}</p>
             {pack.templateSource && <SourceNote source={pack.templateSource} className="mt-2" />}
           </section>
+          <NextSteps steps={pack.templateNextSteps} />
           {pack.notes && <NotesCard notes={pack.notes} />}
         </aside>
       </div>

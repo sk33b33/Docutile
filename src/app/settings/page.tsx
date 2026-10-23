@@ -22,7 +22,7 @@ export default function SettingsPage() {
     const n = Number(mb);
     if (!Number.isFinite(n) || n <= 0 || n > 500) { setError("Enter a size between 0.1 and 500 MB."); return; }
     setError(undefined);
-    try { await saveSettings({ defaultMaxFileSizeBytes: Math.round(n * MB) }); notify("success", "Default file size limit saved. It applies to new slots."); }
+    try { await saveSettings({ ...settings, defaultMaxFileSizeBytes: Math.round(n * MB) }); notify("success", "Default file size limit saved. It applies to new slots."); }
     catch (err) { notify("error", err instanceof Error ? err.message : "Settings could not be saved."); }
   }
 
