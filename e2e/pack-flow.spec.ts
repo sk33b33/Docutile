@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, PDFName } from "pdf-lib";
 import fs from "node:fs";
 import { docx, fakePdf, pdfFile } from "./fixtures";
 import { skipSplash } from "./skip-splash";
@@ -358,4 +358,33 @@ test("dashboard: due-date badges, sort by due date, search, and duplicate with f
   await page.goto("/library");
   await page.getByLabel("Search documents").fill("findme");
   await expect(page.getByText("2 of 2 documents match.")).toBeVisible();
+});
+
+test("export options: title pages, bookmarks and page numbers change the exported PDF", async ({ page }, testInfo) => {
+  await createPack(page);
+  await fileInput(page, "Cover letter").setInputFiles(await pdfFile("a.pdf", 1));
+  await fileInput(page, "Main document").setInputFiles(await pdfFile("b.pdf", 2));
+  await expect(page.getByText("Ready: all required")).toBeVisible();
+  await page.getByRole("link", { name: /Review/ }).click();
+
+  await expect(page.getByLabel("Page numbers (Page X of Y)")).toBeChecked();
+  await expect(page.getByLabel("Title page before each document")).not.toBeChecked();
+  await page.getByLabel("Title page before each document").check();
+
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: /Create & download PDF/ }).click()]);
+  const out = testInfo.outputPath("opts.pdf");
+  await download.saveAs(out);
+  const doc = await PDFDocument.load(fs.readFileSync(out));
+  expect(doc.getPageCount()).toBe(1 + (1 + 1) + (1 + 2)); // cover + 2 documents, each with a title page
+  expect(doc.catalog.has(PDFName.of("Outlines"))).toBe(true);
+
+  // Turning everything off gives the plain pack: no outline.
+  await page.getByLabel("Title page before each document").uncheck();
+  await page.getByLabel("Bookmarks for each document").uncheck();
+  const [download2] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: /Create & download PDF/ }).click()]);
+  const out2 = testInfo.outputPath("plain.pdf");
+  await download2.saveAs(out2);
+  const doc2 = await PDFDocument.load(fs.readFileSync(out2));
+  expect(doc2.getPageCount()).toBe(1 + 1 + 2);
+  expect(doc2.catalog.has(PDFName.of("Outlines"))).toBe(false);
 });

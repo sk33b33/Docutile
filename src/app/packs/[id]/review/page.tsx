@@ -16,7 +16,7 @@ import { downloadBlob, previewBlob } from "@/lib/download";
 import { exportFileName } from "@/lib/filename";
 import { formatBytes, formatDate } from "@/lib/format";
 import { orderedEntries } from "@/lib/packs";
-import { buildManifest, canMerge, type MergeFailure, type MergeProgress } from "@/lib/pdf/merge";
+import { DEFAULT_EXPORT_OPTIONS, buildManifest, canMerge, type ExportOptions, type MergeFailure, type MergeProgress } from "@/lib/pdf/merge";
 import { MergeCancelledError, mergePackOffThread } from "@/lib/pdf/mergeClient";
 import { computeCompleteness } from "@/lib/validation/pack";
 import type { AttachedFile } from "@/types";
@@ -32,6 +32,7 @@ export default function ReviewPage() {
   const [lastPdf, setLastPdf] = useState<Blob | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [progress, setProgress] = useState<MergeProgress | null>(null);
+  const [opts, setOpts] = useState<ExportOptions>(DEFAULT_EXPORT_OPTIONS);
   const abortRef = useRef<AbortController | null>(null);
 
   if (!pack) {
@@ -49,7 +50,7 @@ export default function ReviewPage() {
     const abort = new AbortController();
     abortRef.current = abort;
     try {
-      const result = await mergePackOffThread(pack, (k) => repo.getBlob(k), { onProgress: setProgress, signal: abort.signal });
+      const result = await mergePackOffThread(pack, (k) => repo.getBlob(k), { onProgress: setProgress, signal: abort.signal, exportOptions: opts });
       if (result.failures.length) {
         setFailures(result.failures);
         notify("error", "The PDF was not created because some files could not be merged. See details below.");
@@ -139,6 +140,20 @@ export default function ReviewPage() {
           <CompletenessSummary c={c} linkMissing={false} />
           <section className="no-print space-y-2 rounded-lg border border-white/10 glass p-4">
             <h2 className="text-sm font-semibold">Export</h2>
+            <fieldset className="rounded-md border border-white/15 p-2">
+              <legend className="px-1 text-xs font-medium text-slate-200">PDF options</legend>
+              {([
+                ["pageNumbers", "Page numbers (Page X of Y)"],
+                ["bookmarks", "Bookmarks for each document"],
+                ["links", "Clickable contents on the cover sheet"],
+                ["dividers", "Title page before each document"],
+              ] as const).map(([key, label]) => (
+                <label key={key} className="flex items-center gap-2 py-1 text-xs text-slate-200">
+                  <input type="checkbox" checked={opts[key]} onChange={(e) => setOpts({ ...opts, [key]: e.target.checked })} disabled={busy} />
+                  {label}
+                </label>
+              ))}
+            </fieldset>
             <Button variant="primary" className="w-full" onClick={generate} disabled={!c.ready || busy} aria-describedby="export-help">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FileText className="h-4 w-4" aria-hidden />}
               {busy ? "Creating PDF…" : "Create & download PDF"}

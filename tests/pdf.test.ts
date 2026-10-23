@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { PDFDocument } from "pdf-lib";
-import { buildManifest, canMerge, mergePack, safePdfText } from "@/lib/pdf/merge";
+import { PDFArray, PDFDocument, PDFName } from "pdf-lib";
+import { DEFAULT_EXPORT_OPTIONS, buildManifest, canMerge, mergePack, safePdfText } from "@/lib/pdf/merge";
 import { file, pack, slot } from "./helpers";
 
 const PNG_1X1 = Uint8Array.from(Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64"));
@@ -86,5 +86,74 @@ describe("helpers", () => {
     const m = buildManifest(pack([slot("a", true, [file("1.pdf")]), slot("b", false, [file("2.docx")])]));
     expect(m.indexOf("1.pdf")).toBeLessThan(m.indexOf("2.docx"));
     expect(m).toContain("optional");
+  });
+});
+
+
+describe("export options", () => {
+  const three = async () => {
+    const p = pack([slot("a", true, [file("a.pdf")]), slot("b", true, [file("b.pdf")]), slot("c", false, [file("c.pdf")])]);
+    const blobs = { "b_a.pdf": await pdfWithPages(2), "b_b.pdf": await pdfWithPages(1), "b_c.pdf": await pdfWithPages(3) };
+    return { p, load: loader(blobs) };
+  };
+  const none = { pageNumbers: false, bookmarks: false, links: false, dividers: false };
+
+  it("adds bookmarks for the cover sheet and every document, pointing at the right pages", async () => {
+    const { p, load } = await three();
+    const res = await mergePack(p, load, new Date(), undefined, { ...none, bookmarks: true });
+    const doc = await PDFDocument.load(res.bytes!);
+    const outlines = doc.catalog.lookup(PDFName.of("Outlines"));
+    expect(outlines).toBeDefined();
+    // walk the linked list of items
+    const titles: string[] = [];
+    const pageRefs: string[] = [];
+    let ref = (outlines as unknown as { get(k: PDFName): unknown }).get(PDFName.of("First"));
+    while (ref) {
+      const item = doc.context.lookup(ref as never) as unknown as { get(k: PDFName): unknown; lookup(k: PDFName): unknown };
+      titles.push((item.lookup(PDFName.of("Title")) as unknown as { decodeText(): string }).decodeText());
+      const dest = item.lookup(PDFName.of("Dest")) as PDFArray;
+      pageRefs.push(String(dest.get(0)));
+      ref = item.get(PDFName.of("Next"));
+    }
+    expect(titles).toEqual(["Cover sheet and contents", "1. a.pdf (Slot a)", "2. b.pdf (Slot b)", "3. c.pdf (Slot c)"]);
+    const pageIndexOf = (r: string) => doc.getPages().findIndex((pg) => String(pg.ref) === r);
+    expect(pageRefs.map(pageIndexOf)).toEqual([0, 1, 3, 4]); // cover, then 2 + 1 + 3 pages
+  });
+
+  it("makes contents lines clickable links to the document's first page", async () => {
+    const { p, load } = await three();
+    const res = await mergePack(p, load, new Date(), undefined, { ...none, links: true });
+    const doc = await PDFDocument.load(res.bytes!);
+    const annots = doc.getPage(0).node.Annots();
+    expect(annots?.size()).toBe(3);
+    const targets = [0, 1, 2].map((i) => {
+      const a = doc.context.lookup(annots!.get(i)) as unknown as { lookup(k: PDFName): unknown };
+      return String((a.lookup(PDFName.of("Dest")) as PDFArray).get(0));
+    });
+    expect(targets.map((r) => doc.getPages().findIndex((pg) => String(pg.ref) === r))).toEqual([1, 3, 4]);
+  });
+
+  it("inserts a divider page before each document and keeps the contents page numbers right", async () => {
+    const { p, load } = await three();
+    const res = await mergePack(p, load, new Date(), undefined, { ...none, dividers: true });
+    const doc = await PDFDocument.load(res.bytes!);
+    expect(doc.getPageCount()).toBe(1 + (1 + 2) + (1 + 1) + (1 + 3));
+    expect(res.merged.map((m) => [m.firstPage, m.pageCount])).toEqual([[2, 3], [5, 2], [7, 4]]);
+  });
+
+  it("stamps 'Page X of Y' on every page when enabled", async () => {
+    const { p, load } = await three();
+    const on = await PDFDocument.load((await mergePack(p, load, new Date(), undefined, { ...none, pageNumbers: true })).bytes!);
+    const off = await PDFDocument.load((await mergePack(p, load, new Date(), undefined, none)).bytes!);
+    const streamLen = (d: PDFDocument, i: number) => (d.getPage(i).node.Contents() ? String(d.getPage(i).node.Contents()) : "").length;
+    expect(on.getPageCount()).toBe(off.getPageCount());
+    // every page of the stamped file has extra content compared with the plain one
+    for (let i = 1; i < on.getPageCount(); i++) expect(streamLen(on, i)).toBeGreaterThanOrEqual(streamLen(off, i));
+    const bytes = (await mergePack(p, load, new Date(), undefined, { ...none, pageNumbers: true })).bytes!;
+    expect(bytes.length).toBeGreaterThan((await mergePack(p, load, new Date(), undefined, none)).bytes!.length);
+  });
+
+  it("defaults: page numbers, bookmarks and links on; dividers off", () => {
+    expect(DEFAULT_EXPORT_OPTIONS).toEqual({ pageNumbers: true, bookmarks: true, links: true, dividers: false });
   });
 });

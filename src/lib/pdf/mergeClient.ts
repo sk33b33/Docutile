@@ -1,9 +1,10 @@
 import { orderedEntries } from "../packs";
-import { canMerge, mergePack, type MergeProgress, type MergeResult } from "./merge";
+import { canMerge, mergePack, type ExportOptions, type MergeProgress, type MergeResult } from "./merge";
 import type { WorkerMessage, WorkerRequest } from "./merge.worker";
 import type { Pack } from "@/types";
 
 export interface MergeOptions {
+  exportOptions?: ExportOptions;
   onProgress?: (p: MergeProgress) => void;
   signal?: AbortSignal;
 }
@@ -22,12 +23,12 @@ export class MergeCancelledError extends Error {
 export async function mergePackOffThread(
   pack: Pack,
   loadBlob: (key: string) => Promise<Blob | null>,
-  { onProgress, signal }: MergeOptions = {},
+  { onProgress, signal, exportOptions }: MergeOptions = {},
 ): Promise<MergeResult> {
   if (signal?.aborted) throw new MergeCancelledError();
 
   if (typeof Worker === "undefined") {
-    return mergePack(pack, loadBlob, new Date(), onProgress);
+    return mergePack(pack, loadBlob, new Date(), onProgress, exportOptions);
   }
 
   // Read stored blobs here (async IndexedDB reads do not block the UI). Missing blobs are simply absent,
@@ -56,6 +57,6 @@ export async function mergePackOffThread(
       else { cleanup(); reject(new Error(msg.message)); }
     };
     worker.onerror = (ev) => { cleanup(); reject(new Error(ev.message || "The export worker failed to start.")); };
-    worker.postMessage({ pack, blobs } satisfies WorkerRequest);
+    worker.postMessage({ pack, blobs, options: exportOptions } satisfies WorkerRequest);
   });
 }

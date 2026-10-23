@@ -1,9 +1,22 @@
-import { PDFDocument, PDFFont, PDFPage, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, PDFFont, PDFHexString, PDFName, PDFPage, StandardFonts, rgb } from "pdf-lib";
 import { getExtension } from "../format";
 import { formatDate } from "../format";
 import { MERGEABLE_IMAGE_TYPES, MERGEABLE_PDF_TYPES } from "../constants";
 import { orderedEntries, type OrderedEntry } from "../packs";
 import type { Pack } from "@/types";
+
+export interface ExportOptions {
+  /** "Page X of Y" in the footer of every page. */
+  pageNumbers: boolean;
+  /** PDF bookmarks (outline) for the cover sheet and each document. */
+  bookmarks: boolean;
+  /** Make each line of the contents on the cover sheet a link to that document. */
+  links: boolean;
+  /** Insert a title page before each document. */
+  dividers: boolean;
+}
+
+export const DEFAULT_EXPORT_OPTIONS: ExportOptions = { pageNumbers: true, bookmarks: true, links: true, dividers: false };
 
 export type BlobLoader = (blobKey: string) => Promise<Blob | null>;
 
@@ -65,7 +78,10 @@ function describeError(err: unknown): string {
   return "The file could not be read as a valid document. It may be corrupt. Re-save or re-export it and re-attach it.";
 }
 
-interface CoverRow { n: number; label: string; detail: string; pages: string }
+interface CoverRow { n: number; label: string; detail: string; pages: string; /** 1-based final page this row points to. */ target?: number }
+
+/** Where a contents row sits on the cover sheet, for building link annotations. */
+export interface CoverHit { coverPage: number; rect: [number, number, number, number]; target: number }
 
 function wrap(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
   const words = safePdfText(text).split(" ");
@@ -87,7 +103,7 @@ export async function drawCoverSheet(
   rows: CoverRow[],
   separateRows: CoverRow[],
   generatedAt: Date,
-): Promise<number> {
+): Promise<{ pages: number; hits: CoverHit[] }> {
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const [pw, ph] = A4;
@@ -95,6 +111,7 @@ export async function drawCoverSheet(
   const navy = rgb(0.06, 0.13, 0.27);
   const grey = rgb(0.35, 0.4, 0.47);
   let pages = 0;
+  const hits: CoverHit[] = [];
   let page: PDFPage;
   let y = 0;
 
@@ -134,8 +151,10 @@ export async function drawCoverSheet(
       const lines = wrap(r.label, font, 10, pw - m * 2 - 90);
       const detailLines = r.detail ? wrap(r.detail, font, 8.5, pw - m * 2 - 90) : [];
       ensure(lines.length * 13 + detailLines.length * 11 + 8);
+      const firstBaseline = y;
       text(`${r.n}.`, m, 10, bold);
       lines.forEach((l, i) => { text(l, m + 24, 10); if (i < lines.length - 1) y -= 13; });
+      if (showPages && r.target) hits.push({ coverPage: pages - 1, rect: [m, y - 3, pw - m, firstBaseline + 11], target: r.target });
       if (showPages) {
         const wd = font.widthOfTextAtSize(r.pages, 10);
         page.drawText(safePdfText(r.pages), { x: pw - m - wd, y: y + (lines.length - 1) * 0, size: 10, font, color: navy });
@@ -151,7 +170,7 @@ export async function drawCoverSheet(
   if (separateRows.length) {
     section("Supplied separately (not included in this PDF)", separateRows, false);
   }
-  return pages;
+  return { pages, hits };
 }
 
 export interface MergeProgress {
@@ -161,11 +180,73 @@ export interface MergeProgress {
   label: string;
 }
 
+async function drawDivider(doc: PDFDocument, entry: OrderedEntry, index: number, total: number, pack: Pack) {
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const page = doc.addPage(A4);
+  const [pw, ph] = A4;
+  const navy = rgb(0.06, 0.13, 0.27);
+  const grey = rgb(0.35, 0.4, 0.47);
+  const centred = (t: string, y: number, size: number, f: PDFFont, color = navy) => {
+    for (const [i, line] of wrap(t, f, size, pw - 120).entries()) {
+      const w = f.widthOfTextAtSize(line, size);
+      page.drawText(line, { x: (pw - w) / 2, y: y - i * (size + 6), size, font: f, color });
+    }
+  };
+  centred(`Document ${index} of ${total}`, ph / 2 + 70, 12, font, grey);
+  centred(entry.file.displayName, ph / 2 + 30, 24, bold);
+  centred(`${entry.slot.name}${entry.slot.required ? "" : " (optional)"}`, ph / 2 - 30, 13, font, grey);
+  centred(pack.name, 70, 10, font, grey);
+}
+
+/** Flat PDF outline (bookmarks). Titles are hex strings so any text is safe. */
+function addOutline(doc: PDFDocument, items: { title: string; pageIndex: number }[]) {
+  if (items.length === 0) return;
+  const ctx = doc.context;
+  const rootRef = ctx.nextRef();
+  const refs = items.map(() => ctx.nextRef());
+  items.forEach((it, i) => {
+    const dict = ctx.obj({
+      Title: PDFHexString.fromText(it.title),
+      Parent: rootRef,
+      ...(i > 0 ? { Prev: refs[i - 1] } : {}),
+      ...(i < items.length - 1 ? { Next: refs[i + 1] } : {}),
+      Dest: [doc.getPage(it.pageIndex).ref, PDFName.of("Fit")],
+    });
+    ctx.assign(refs[i], dict);
+  });
+  ctx.assign(rootRef, ctx.obj({ Type: "Outlines", First: refs[0], Last: refs[refs.length - 1], Count: items.length }));
+  doc.catalog.set(PDFName.of("Outlines"), rootRef);
+  doc.catalog.set(PDFName.of("PageMode"), PDFName.of("UseOutlines"));
+}
+
+function addLinks(doc: PDFDocument, hits: CoverHit[]) {
+  for (const h of hits) {
+    const target = doc.getPage(h.target - 1);
+    const annot = doc.context.register(
+      doc.context.obj({ Type: "Annot", Subtype: "Link", Rect: h.rect, Border: [0, 0, 0], Dest: [target.ref, PDFName.of("Fit")] }),
+    );
+    doc.getPage(h.coverPage).node.addAnnot(annot);
+  }
+}
+
+async function addPageNumbers(doc: PDFDocument) {
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const total = doc.getPageCount();
+  doc.getPages().forEach((page, i) => {
+    const text = `Page ${i + 1} of ${total}`;
+    const { width } = page.getSize();
+    const w = font.widthOfTextAtSize(text, 8);
+    page.drawText(text, { x: (width - w) / 2, y: 12, size: 8, font, color: rgb(0.4, 0.45, 0.52) });
+  });
+}
+
 export async function mergePack(
   pack: Pack,
   loadBlob: BlobLoader,
   now = new Date(),
   onProgress?: (p: MergeProgress) => void,
+  options: ExportOptions = DEFAULT_EXPORT_OPTIONS,
 ): Promise<MergeResult> {
   const entries = orderedEntries(pack.slots);
   const mergeable = entries.filter((e) => canMerge(e.file.originalName));
@@ -186,7 +267,8 @@ export async function mergePack(
       const bytes = new Uint8Array(await blob.arrayBuffer());
       const ext = getExtension(entry.file.originalName);
       const first = body.getPageCount() + 1;
-      const count = MERGEABLE_PDF_TYPES.includes(ext) ? await appendPdf(body, bytes) : await appendImage(body, bytes, ext);
+      if (options.dividers) await drawDivider(body, entry, i + 1, mergeable.length, pack);
+      const count = (options.dividers ? 1 : 0) + await (MERGEABLE_PDF_TYPES.includes(ext) ? await appendPdf(body, bytes) : await appendImage(body, bytes, ext));
       bodyItems.push({ entry, first, count });
     } catch (err) {
       failures.push({ entry, reason: describeError(err) });
@@ -209,15 +291,23 @@ export async function mergePack(
     bodyItems.map((b, i) => {
       const from = b.first + offset;
       const to = from + b.count - 1;
-      return { n: i + 1, label: label(b.entry), detail: detail(b.entry), pages: from === to ? `p. ${from}` : `pp. ${from}-${to}` };
+      return { n: i + 1, label: label(b.entry), detail: detail(b.entry), pages: from === to ? `p. ${from}` : `pp. ${from}-${to}`, target: from };
     });
   const probe = await PDFDocument.create();
-  const coverPages = await drawCoverSheet(probe, pack, rowsFor(0), separateRows, now);
+  const { pages: coverPages } = await drawCoverSheet(probe, pack, rowsFor(0), separateRows, now);
 
   const final = await PDFDocument.create();
-  await drawCoverSheet(final, pack, rowsFor(coverPages), separateRows, now);
+  const { hits } = await drawCoverSheet(final, pack, rowsFor(coverPages), separateRows, now);
   const copied = await final.copyPages(body, body.getPageIndices());
   copied.forEach((p) => final.addPage(p));
+  if (options.links) addLinks(final, hits);
+  if (options.bookmarks) {
+    addOutline(final, [
+      { title: "Cover sheet and contents", pageIndex: 0 },
+      ...bodyItems.map((b, i) => ({ title: `${i + 1}. ${b.entry.file.displayName} (${b.entry.slot.name})`, pageIndex: b.first + coverPages - 1 })),
+    ]);
+  }
+  if (options.pageNumbers) await addPageNumbers(final);
   final.setTitle(safePdfText(pack.name));
   final.setProducer("Docutile");
   final.setCreator("Docutile");
