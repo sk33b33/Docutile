@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
   DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent,
 } from "@dnd-kit/core";
@@ -14,6 +14,7 @@ import { CompletenessSummary } from "@/components/packs/CompletenessSummary";
 import { PackStatusBadge } from "@/components/packs/PackStatusBadge";
 import { usePackEditor } from "@/components/packs/usePackEditor";
 import { SlotTile } from "@/components/documents/SlotTile";
+import { ImageEditDialog } from "@/components/documents/ImageEditDialog";
 import { WaitingDialog } from "@/components/documents/WaitingDialog";
 import { SourceNote } from "@/components/templates/SourceNote";
 import { SlotEditorDialog, type SlotDraft } from "@/components/templates/SlotEditorDialog";
@@ -43,6 +44,9 @@ export default function PackBuilderPage() {
   const [slotDialog, setSlotDialog] = useState<SlotDialog>(null);
   const [metaOpen, setMetaOpen] = useState(false);
   const [waitingSlot, setWaitingSlot] = useState<DocumentSlot | null>(null);
+  const [imageTarget, setImageTarget] = useState<{ slot: DocumentSlot; file: AttachedFile } | null>(null);
+
+  const loadBlobFn = useCallback((k: string) => repo.getBlob(k), [repo]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -173,6 +177,7 @@ export default function PackBuilderPage() {
                       onRemoveSlot={setRemoveSlotPrompt}
                       onMoveSlot={(from, to) => ed.moveSlot(from, to).catch((e) => fail(e, "Could not reorder."))}
                       onDismissError={(sid) => setError(sid, null)}
+                      onEditImage={(sl, f) => setImageTarget({ slot: sl, file: f })}
                       onEditWaiting={setWaitingSlot}
                       onClearWaiting={(sl) => ed.setWaiting(sl.id, null).then(() => notify("success", `Cleared the waiting note on ${sl.name}.`)).catch((e) => fail(e, "Could not clear the note."))}
                     />
@@ -209,6 +214,20 @@ export default function PackBuilderPage() {
           />
         )}
       </Dialog>
+
+      <ImageEditDialog
+        target={imageTarget}
+        loadBlob={loadBlobFn}
+        onClose={() => setImageTarget(null)}
+        onSave={async (edited) => {
+          const t = imageTarget;
+          if (!t) return;
+          const r = await ed.attachFile(t.slot.id, edited, t.file.id); // throws StorageError; the dialog shows it
+          if (r.error) throw new Error(r.error);
+          setImageTarget(null);
+          notify("success", `Saved the edited image as "${edited.name}".`);
+        }}
+      />
 
       <WaitingDialog
         slot={waitingSlot}

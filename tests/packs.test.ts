@@ -328,3 +328,31 @@ describe("search", () => {
     expect(searchLibrary(rows, "muller lease")).toHaveLength(1);
   });
 });
+
+import { nextRotation, outputSize, renameForFormat } from "@/lib/image";
+
+describe("image edit maths", () => {
+  const src = { width: 4000, height: 3000 };
+  const none = { rotation: 0 as const, crop: { top: 0, right: 0, bottom: 0, left: 0 }, maxSide: null };
+  it("swaps width and height when rotated a quarter turn", () => {
+    expect(outputSize(src, none)).toEqual({ width: 4000, height: 3000 });
+    expect(outputSize(src, { ...none, rotation: 90 })).toEqual({ width: 3000, height: 4000 });
+    expect(outputSize(src, { ...none, rotation: 180 })).toEqual({ width: 4000, height: 3000 });
+  });
+  it("crops by percentage of the rotated image, never below 10%", () => {
+    expect(outputSize(src, { ...none, crop: { top: 10, right: 20, bottom: 10, left: 0 } })).toEqual({ width: 3200, height: 2400 });
+    expect(outputSize(src, { ...none, crop: { top: 99, right: 99, bottom: 99, left: 99 } })).toEqual({ width: 400, height: 300 });
+  });
+  it("shrinks to a longest side without upscaling", () => {
+    expect(outputSize(src, { ...none, maxSide: 2000 })).toEqual({ width: 2000, height: 1500 });
+    expect(outputSize(src, { ...none, rotation: 90, maxSide: 2000 })).toEqual({ width: 1500, height: 2000 });
+    expect(outputSize({ width: 800, height: 600 }, { ...none, maxSide: 2000 })).toEqual({ width: 800, height: 600 });
+  });
+  it("cycles rotation and renames for the output format", () => {
+    expect(nextRotation(0, "right")).toBe(90);
+    expect(nextRotation(0, "left")).toBe(270);
+    expect(nextRotation(270, "right")).toBe(0);
+    expect(renameForFormat("scan.PNG", "image/jpeg")).toBe("scan.jpg");
+    expect(renameForFormat("photo.jpeg", "image/png")).toBe("photo.png");
+  });
+});

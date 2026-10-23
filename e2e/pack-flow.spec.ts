@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { PDFDocument, PDFName } from "pdf-lib";
 import fs from "node:fs";
-import { docx, fakePdf, pdfFile } from "./fixtures";
+import { docx, fakePdf, pdfFile, pngBuffer, pngSize } from "./fixtures";
 import { skipSplash } from "./skip-splash";
 
 test.beforeEach(({ page }) => skipSplash(page));
@@ -387,4 +387,40 @@ test("export options: title pages, bookmarks and page numbers change the exporte
   const doc2 = await PDFDocument.load(fs.readFileSync(out2));
   expect(doc2.getPageCount()).toBe(1 + 1 + 2);
   expect(doc2.catalog.has(PDFName.of("Outlines"))).toBe(false);
+});
+
+
+test("image tidy-up: rotate, crop and shrink replace the stored image", async ({ page }, testInfo) => {
+  await createPack(page);
+  await fileInput(page, "Cover letter").setInputFiles({ name: "photo.png", mimeType: "image/png", buffer: pngBuffer(2400, 1600) });
+  await expect(tile(page, "Cover letter").getByText("photo.png").first()).toBeVisible();
+
+  await tile(page, "Cover letter").getByRole("button", { name: /Edit image photo\.png/ }).click();
+  await expect(page.getByRole("dialog", { name: "Edit image" })).toBeVisible();
+  await expect(page.getByText(/Original .* after your changes about/)).toBeVisible();
+  await page.getByRole("button", { name: "Rotate right" }).click();
+  await page.locator("#crop-top").fill("25");
+  await page.locator("#img-size").selectOption("1000");
+  await page.getByRole("button", { name: "Save image" }).click();
+  await expect(page.getByText('Saved the edited image as "photo.png".')).toBeVisible();
+
+  // 2400x1600 rotated -> 1600x2400, top 25% trimmed -> 1600x1800, longest side shrunk to 1000 -> 889x1000
+  const [download] = await Promise.all([page.waitForEvent("download"), tile(page, "Cover letter").getByRole("button", { name: "Download" }).click()]);
+  const out = testInfo.outputPath("edited.png");
+  await download.saveAs(out);
+  const size = pngSize(fs.readFileSync(out));
+  expect(size.height).toBe(1000);
+  expect(Math.abs(size.width - 889)).toBeLessThanOrEqual(1);
+  await expect(page.getByText("1 of 2 required").first()).toBeVisible(); // still exactly one file, still counted
+  await expect(tile(page, "Cover letter").getByText("photo.png")).toHaveCount(1);
+});
+
+test("image tidy-up can convert a PNG to a smaller JPEG when the slot allows it", async ({ page }) => {
+  await createPack(page);
+  await fileInput(page, "Cover letter").setInputFiles({ name: "scan.png", mimeType: "image/png", buffer: pngBuffer(800, 600) });
+  await tile(page, "Cover letter").getByRole("button", { name: /Edit image scan\.png/ }).click();
+  await page.getByLabel("Save as JPEG").check();
+  await page.getByRole("button", { name: "Save image" }).click();
+  await expect(tile(page, "Cover letter").getByText("scan.jpg").first()).toBeVisible();
+  await expect(tile(page, "Cover letter").getByText("scan.png")).toHaveCount(0);
 });

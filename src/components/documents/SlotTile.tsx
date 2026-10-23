@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Download, Eye, GripVertical, Pencil, Replace, Trash2, Upload, X } from "lucide-react";
+import { Crop, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Download, Eye, GripVertical, Pencil, Replace, Trash2, Upload, X } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { formatBytes, formatDate, formatTypeList, getExtension } from "@/lib/format";
@@ -21,6 +21,7 @@ export interface SlotTileHandlers {
   onRemoveSlot: (slot: DocumentSlot) => void;
   onMoveSlot: (from: number, to: number) => void;
   onDismissError: (slotId: string) => void;
+  onEditImage: (slot: DocumentSlot, file: AttachedFile) => void;
   onEditWaiting: (slot: DocumentSlot) => void;
   onClearWaiting: (slot: DocumentSlot) => void;
 }
@@ -149,6 +150,9 @@ export function SlotTile(props: Props) {
               <div className="mt-1 flex flex-wrap gap-1">
                 {PREVIEWABLE.includes(getExtension(f.originalName)) && (
                   <Button size="sm" variant="ghost" onClick={() => props.onPreview(f)}><Eye className="h-4 w-4" aria-hidden /> Preview</Button>
+                )}
+                {["png", "jpg", "jpeg"].includes(getExtension(f.originalName)) && (
+                  <Button size="sm" variant="ghost" onClick={() => props.onEditImage(slot, f)} aria-label={`Edit image ${f.displayName}`}><Crop className="h-4 w-4" aria-hidden /> Edit image</Button>
                 )}
                 <Button size="sm" variant="ghost" onClick={() => props.onDownload(f)}><Download className="h-4 w-4" aria-hidden /> Download</Button>
                 <Button size="sm" variant="ghost" onClick={() => startRename(f)} aria-label={`Rename label of ${f.displayName}`}><Pencil className="h-4 w-4" aria-hidden /> Label</Button>

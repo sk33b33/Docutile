@@ -69,10 +69,12 @@ export function usePackEditor(packId: string) {
         if (!check.ok) return { attached: null, error: check.error, warnings: [] };
 
         const ext = getExtension(file.name);
+        const oldFile = replaceFileId ? slot.files.find((f) => f.id === replaceFileId) : undefined;
         const attached: AttachedFile = {
           id: newId("file"),
           originalName: file.name,
-          displayName: file.name,
+          // Replacing a file keeps a label the user chose; an unrenamed file takes the new file name.
+          displayName: oldFile && oldFile.displayName !== oldFile.originalName ? oldFile.displayName : file.name,
           mimeType: MIME_BY_EXTENSION[ext] ?? file.type ?? "application/octet-stream",
           sizeBytes: file.size,
           lastModified: file.lastModified,
