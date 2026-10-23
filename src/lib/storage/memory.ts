@@ -33,6 +33,7 @@ export class MemoryRepository implements Repository {
   async deleteActivityForPack(packId: string) {
     for (const [k, v] of this.activity) if (v.packId === packId) this.activity.delete(k);
   }
+  async clearActivity() { this.activity.clear(); }
   async getSettings() { return this.settings; }
   async saveSettings(s: Settings) { this.settings = { ...s }; }
   async clearAll() {

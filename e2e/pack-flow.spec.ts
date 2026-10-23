@@ -463,3 +463,33 @@ test("encrypted backup: password rules, wrong password, and a successful import"
   await page.waitForURL(/\/packs\/pack_/);
   await expect(tile(page, "Cover letter").getByText("secret.pdf").first()).toBeVisible();
 });
+
+test("activity: clear recent activity with confirmation, keeping packs and files", async ({ page }) => {
+  await page.goto("/activity");
+  await expect(page.getByRole("button", { name: "Clear activity" })).toBeDisabled();
+  await expect(page.getByText("Nothing to clear: there is no activity yet.")).toBeVisible();
+
+  await createPack(page);
+  await fileInput(page, "Cover letter").setInputFiles(await pdfFile("keep.pdf", 1));
+  await expect(tile(page, "Cover letter").getByText("keep.pdf").first()).toBeVisible();
+
+  await page.goto("/activity");
+  await expect(page.getByText(/Created pack "Q1 onboarding"/)).toBeVisible();
+  await expect(page.getByText(/Attached "keep.pdf"/)).toBeVisible();
+
+  await page.getByRole("button", { name: "Clear activity" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByText(/Attached "keep.pdf"/)).toBeVisible(); // cancelling changes nothing
+
+  await page.getByRole("button", { name: "Clear activity" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Clear activity" }).click();
+  await expect(page.getByText("Activity history cleared. Your packs and files were not touched.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "No activity yet" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Clear activity" })).toBeDisabled();
+
+  // Stays cleared after a reload, and the pack and its file are untouched.
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "No activity yet" })).toBeVisible();
+  await page.goto("/library");
+  await expect(page.getByText("keep.pdf")).toBeVisible();
+});

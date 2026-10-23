@@ -33,6 +33,8 @@ export interface Repository {
   listActivity(): Promise<ActivityEvent[]>;
   addActivity(event: ActivityEvent): Promise<void>;
   deleteActivityForPack(packId: string): Promise<void>;
+  /** Removes every activity event. Packs, files and templates are untouched. */
+  clearActivity(): Promise<void>;
 
   getSettings(): Promise<Settings | null>;
   saveSettings(settings: Settings): Promise<void>;

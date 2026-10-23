@@ -53,7 +53,7 @@ npm run build && npm start
 - **Splash screen:** a full-screen "Tap to enter" splash with the centred Docutile logo, shown once per browser session. The whole screen is one button (tap, click, Enter or Space), it takes focus on load, the app behind it is inert until you enter, and reduced motion skips the animation.
 - **Visual design:** dark futuristic theme with translucent glass panels, glow and ambient motion, with reduced-motion and reduced-transparency fallbacks and a plain print stylesheet.
 - **Document library**: read-only index of every file stored in this browser, with download.
-- **Activity**: local event log (pack created, files attached/replaced/removed, reorders, exports, ...).
+- **Activity**: local event log (pack created, files attached/replaced/removed, reorders, exports, ...), with a "Clear activity" button (confirmation required; packs and files are not affected).
 - **Settings**: default maximum file size (25 MB by default), explanation of limits, and "Clear all local data" with confirmation.
 - **Backup and import**: "Export backup" on a pack downloads one `.docutile` file (pack details plus every file); "Import backup" on the dashboard validates it strictly (header, sizes, and each file's content against its extension) and adds it as a new draft under fresh ids, so nothing is overwritten. Backups are not encrypted.
 - **Persistence**: IndexedDB (versioned) for pack metadata, templates, activity, settings, and file Blobs (stored as Blobs, never JSON). Changes save automatically. Quota and unavailable-storage errors are surfaced to the user. Data saved under the pre-rename `packflow` database is migrated once to `docutile`.

@@ -465,3 +465,18 @@ describe("source tokens", () => {
     expect(withTokens.length).toBeGreaterThan(30);
   });
 });
+
+describe("clearActivity", () => {
+  it("removes every activity event and leaves packs and blobs alone", async () => {
+    const repo = new MemoryRepository();
+    const p = pack([slot("a", true, [file("a.pdf")])]);
+    await repo.savePack(p);
+    await repo.putBlob("b_a.pdf", new Blob(["x"]));
+    await repo.addActivity({ id: "e1", packId: p.id, type: "pack_created", message: "one", timestamp: "2026-01-01T00:00:00.000Z" });
+    await repo.addActivity({ id: "e2", packId: null, type: "data_cleared", message: "two", timestamp: "2026-01-02T00:00:00.000Z" });
+    await repo.clearActivity();
+    expect(await repo.listActivity()).toEqual([]);
+    expect(await repo.listPacks()).toHaveLength(1);
+    expect(await repo.getBlob("b_a.pdf")).not.toBeNull();
+  });
+});

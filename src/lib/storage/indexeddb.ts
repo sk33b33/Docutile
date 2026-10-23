@@ -123,6 +123,8 @@ export class IndexedDbRepository implements Repository {
     });
   }
 
+  async clearActivity() { await this.tx([STORES.activity], "readwrite", (tx) => { tx.objectStore(STORES.activity).clear(); }); }
+
   async getSettings() {
     return ((await this.tx<Settings>([STORES.settings], "readonly", (tx) => tx.objectStore(STORES.settings).get("settings"))) ?? null) as Settings | null;
   }

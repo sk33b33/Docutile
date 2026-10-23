@@ -32,6 +32,8 @@ interface AppContextValue {
   saveTemplate: (t: Template) => Promise<void>;
   deleteTemplate: (id: string) => Promise<void>;
   saveSettings: (s: Settings) => Promise<void>;
+  /** Deletes the local activity history only. Throws StorageError on failure. */
+  clearActivity: () => Promise<void>;
   log: (type: ActivityType, message: string, packId?: string | null) => Promise<void>;
   clearAllData: () => Promise<void>;
   reload: () => Promise<void>;
@@ -170,6 +172,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [packs, repo, savePack, log],
   );
 
+  const clearActivity = useCallback(async () => {
+    await repo.clearActivity();
+    setActivity([]);
+  }, [repo]);
+
   const saveTemplate = useCallback(
     async (t: Template) => {
       await repo.saveTemplate(t);
@@ -207,7 +214,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const value: AppContextValue = {
     repo, loadState, loadError, packs, templates, customisedTemplateIds, activity, settings,
-    savePack, deletePack, importBackup, duplicatePack, saveTemplate, deleteTemplate, saveSettings, log, clearAllData, reload,
+    savePack, deletePack, importBackup, duplicatePack, clearActivity, saveTemplate, deleteTemplate, saveSettings, log, clearAllData, reload,
   };
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
