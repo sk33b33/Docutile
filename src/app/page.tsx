@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { BackupPasswordRequired } from "@/lib/backup-crypto";
+import { ImportPasswordDialog } from "@/components/packs/BackupDialogs";
 import { CalendarClock, Copy, Search, Trash2, Upload } from "lucide-react";
 import { useApp } from "@/components/providers/AppProvider";
 import { Badge } from "@/components/ui/Badge";
@@ -24,6 +26,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const importRef = useRef<HTMLInputElement>(null);
   const [toDelete, setToDelete] = useState<Pack | null>(null);
+  const [protectedFile, setProtectedFile] = useState<File | null>(null);
   const [toDuplicate, setToDuplicate] = useState<Pack | null>(null);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<PackSort>("updated");
@@ -57,16 +60,21 @@ export default function DashboardPage() {
     }
   }
 
+  async function finishImport(file: File, password?: string) {
+    const pack = await importBackup(file, password);
+    notify("success", `Imported "${pack.name}" as a new draft with ${pack.slots.reduce((n, s) => n + s.files.length, 0)} file(s).`);
+    router.push(`/packs/${pack.id}`);
+  }
+
   async function onImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
     try {
-      const pack = await importBackup(file);
-      notify("success", `Imported "${pack.name}" as a new draft with ${pack.slots.reduce((n, s) => n + s.files.length, 0)} file(s).`);
-      router.push(`/packs/${pack.id}`);
+      await finishImport(file);
     } catch (err) {
-      notify("error", err instanceof Error ? err.message : "The backup could not be imported.");
+      if (err instanceof BackupPasswordRequired) setProtectedFile(file);
+      else notify("error", err instanceof Error ? err.message : "The backup could not be imported.");
     }
   }
 
@@ -160,6 +168,15 @@ export default function DashboardPage() {
           )}
         </>
       )}
+      <ImportPasswordDialog
+        file={protectedFile}
+        onClose={() => setProtectedFile(null)}
+        onSubmit={async (pw) => {
+          if (!protectedFile) return;
+          await finishImport(protectedFile, pw); // wrong password throws, and the dialog shows it
+          setProtectedFile(null);
+        }}
+      />
       <Dialog
         open={!!toDuplicate}
         title="Duplicate this pack"

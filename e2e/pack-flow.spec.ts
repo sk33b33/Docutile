@@ -230,7 +230,9 @@ test("backup: export a pack, import it as a new draft, and reject bad files", as
   await fileInput(page, "Cover letter").setInputFiles(await pdfFile("letter.pdf", 2));
   await expect(tile(page, "Cover letter").getByText("letter.pdf").first()).toBeVisible();
 
-  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Export backup" }).click()]);
+  await page.getByRole("button", { name: "Export backup" }).click();
+  await page.getByRole("radio", { name: /No password/ }).check();
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download backup" }).click()]);
   expect(download.suggestedFilename()).toMatch(/^Q1Onboarding_Backup_\d{4}-\d\d-\d\d\.docutile$/);
   const backup = testInfo.outputPath("pack.docutile");
   await download.saveAs(backup);
@@ -423,4 +425,37 @@ test("image tidy-up can convert a PNG to a smaller JPEG when the slot allows it"
   await page.getByRole("button", { name: "Save image" }).click();
   await expect(tile(page, "Cover letter").getByText("scan.jpg").first()).toBeVisible();
   await expect(tile(page, "Cover letter").getByText("scan.png")).toHaveCount(0);
+});
+
+
+test("encrypted backup: password rules, wrong password, and a successful import", async ({ page }, testInfo) => {
+  await createPack(page);
+  await fileInput(page, "Cover letter").setInputFiles(await pdfFile("secret.pdf", 1));
+  await expect(tile(page, "Cover letter").getByText("secret.pdf").first()).toBeVisible();
+
+  await page.getByRole("button", { name: "Export backup" }).click();
+  await expect(page.getByRole("radio", { name: /Encrypt with a password/ })).toBeChecked(); // protected by default
+  await page.getByRole("button", { name: "Download backup" }).click();
+  await expect(page.getByText("Use at least 8 characters.")).toBeVisible();
+  await page.locator("#bk-pw").fill("longenough1");
+  await page.locator("#bk-pw2").fill("different123");
+  await page.getByRole("button", { name: "Download backup" }).click();
+  await expect(page.getByText("The two passwords do not match.")).toBeVisible();
+  await page.locator("#bk-pw2").fill("longenough1");
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download backup" }).click()]);
+  const file = testInfo.outputPath("locked.docutile");
+  await download.saveAs(file);
+  expect(fs.readFileSync(file).subarray(0, 16).toString()).toBe("DOCUTILE-ENCRYPT");
+  expect(fs.readFileSync(file).includes(Buffer.from("secret.pdf"))).toBe(false); // names are encrypted too
+
+  await page.goto("/");
+  await page.locator('input[accept=".docutile"]').setInputFiles(file);
+  await expect(page.getByRole("dialog", { name: "Password needed" })).toBeVisible();
+  await page.locator("#imp-pw").fill("not-the-password");
+  await page.getByRole("dialog").getByRole("button", { name: "Import", exact: true }).click();
+  await expect(page.getByText(/password is wrong, or the backup file is damaged/)).toBeVisible();
+  await page.locator("#imp-pw").fill("longenough1");
+  await page.getByRole("dialog").getByRole("button", { name: "Import", exact: true }).click();
+  await page.waitForURL(/\/packs\/pack_/);
+  await expect(tile(page, "Cover letter").getByText("secret.pdf").first()).toBeVisible();
 });

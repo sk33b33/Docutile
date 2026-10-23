@@ -356,3 +356,65 @@ describe("image edit maths", () => {
     expect(renameForFormat("photo.jpeg", "image/png")).toBe("photo.png");
   });
 });
+
+import { BackupPasswordError, ENC_MAGIC, decryptBlob, encryptBlob, isEncryptedBackup } from "@/lib/backup-crypto";
+
+describe("encrypted backups", () => {
+  const fast = { iterations: 1_000, chunkSize: 64 };
+  const plain = () => new Blob([new Uint8Array(300).map((_, i) => i % 251)]); // 5 chunks of 64 bytes
+  const bytes = async (b: Blob) => new Uint8Array(await b.arrayBuffer());
+
+  it("round-trips with the right password and is not readable without it", async () => {
+    const enc = await encryptBlob(plain(), "correct horse", fast);
+    expect(await isEncryptedBackup(enc)).toBe(true);
+    expect(await isEncryptedBackup(plain())).toBe(false);
+    expect(await bytes(await decryptBlob(enc, "correct horse"))).toEqual(await bytes(plain()));
+    // the plaintext pattern does not appear in the output
+    const raw = await bytes(enc);
+    const needle = Array.from({ length: 16 }, (_, i) => i % 251);
+    const hay = Array.from(raw).join(",");
+    expect(hay.includes(needle.join(","))).toBe(false);
+  });
+  it("rejects a wrong password with a clear error", async () => {
+    const enc = await encryptBlob(plain(), "right", fast);
+    await expect(decryptBlob(enc, "wrong")).rejects.toBeInstanceOf(BackupPasswordError);
+  });
+  it("detects tampering, truncation and chunk reordering", async () => {
+    const enc = await encryptBlob(plain(), "pw", fast);
+    const raw = await bytes(enc);
+    const flipped = raw.slice(); flipped[flipped.length - 20] ^= 1;
+    await expect(decryptBlob(new Blob([flipped]), "pw")).rejects.toBeInstanceOf(BackupPasswordError);
+    await expect(decryptBlob(enc.slice(0, enc.size - 5), "pw")).rejects.toThrow(/damaged or incomplete/);
+    // swap two full ciphertext chunks (each 64 + 16 bytes) after the header
+    const hLen = new DataView(raw.buffer).getUint32(ENC_MAGIC.length, false);
+    const start = ENC_MAGIC.length + 4 + hLen;
+    const swapped = raw.slice();
+    swapped.set(raw.slice(start + 80, start + 160), start);
+    swapped.set(raw.slice(start, start + 80), start + 80);
+    await expect(decryptBlob(new Blob([swapped]), "pw")).rejects.toBeInstanceOf(BackupPasswordError);
+  });
+  it("uses a fresh salt and IV every time, and handles an empty input", async () => {
+    const a = await bytes(await encryptBlob(plain(), "pw", fast));
+    const b = await bytes(await encryptBlob(plain(), "pw", fast));
+    expect(a).not.toEqual(b);
+    const empty = await encryptBlob(new Blob([]), "pw", fast);
+    expect((await decryptBlob(empty, "pw")).size).toBe(0);
+  });
+  it("rejects hostile headers (absurd iteration counts)", async () => {
+    const enc = await encryptBlob(plain(), "pw", fast);
+    const raw = await bytes(enc);
+    const hLen = new DataView(raw.buffer).getUint32(ENC_MAGIC.length, false);
+    const start = ENC_MAGIC.length + 4;
+    const header = new TextDecoder().decode(raw.slice(start, start + hLen)).replace('"iterations":1000', '"iterations":999999999');
+    const forged = new Uint8Array([...raw.slice(0, ENC_MAGIC.length), 0, 0, 0, header.length, ...new TextEncoder().encode(header), ...raw.slice(start + hLen)]);
+    await expect(decryptBlob(new Blob([forged]), "pw")).rejects.toThrow(/unsupported settings/);
+  });
+  it("works end to end with a real pack backup", async () => {
+    const p = pack([slot("a", true, [file("a.pdf")])]);
+    const backup = await createBackup(p, async () => new Blob(["%PDF-1.4 secret"], { type: "application/pdf" }));
+    const enc = await encryptBlob(backup, "pw", fast);
+    await expect(parseBackup(enc)).rejects.toThrow(/not a Docutile backup/); // cannot be read as a plain backup
+    const parsed = await parseBackup(await decryptBlob(enc, "pw"));
+    expect(await parsed.blobs.get("b_a.pdf")!.text()).toBe("%PDF-1.4 secret");
+  });
+});

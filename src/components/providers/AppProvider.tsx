@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { DEFAULT_MAX_FILE_SIZE_BYTES } from "@/lib/constants";
 import { newId } from "@/lib/id";
 import { parseBackup, remapForImport } from "@/lib/backup";
+import { BackupPasswordRequired, decryptBlob, isEncryptedBackup } from "@/lib/backup-crypto";
 import { BUILT_IN_TEMPLATES, mergeTemplates } from "@/lib/templates";
 import { IndexedDbRepository } from "@/lib/storage/indexeddb";
 import type { Repository } from "@/lib/storage/repository";
@@ -25,7 +26,7 @@ interface AppContextValue {
   savePack: (pack: Pack) => Promise<Pack>;
   deletePack: (id: string) => Promise<void>;
   /** Validates a backup file and adds its pack under new ids. Throws BackupError or StorageError. */
-  importBackup: (file: Blob) => Promise<Pack>;
+  importBackup: (file: Blob, password?: string) => Promise<Pack>;
   /** Copies a pack as a new draft, with or without its files. Throws StorageError on failure. */
   duplicatePack: (id: string, withFiles: boolean) => Promise<Pack>;
   saveTemplate: (t: Template) => Promise<void>;
@@ -111,8 +112,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const importBackup = useCallback(
-    async (file: Blob) => {
-      const { pack, blobs } = remapForImport(await parseBackup(file));
+    async (file: Blob, password?: string) => {
+      let source = file;
+      if (await isEncryptedBackup(file)) {
+        if (!password) throw new BackupPasswordRequired();
+        source = await decryptBlob(file, password);
+      }
+      const { pack, blobs } = remapForImport(await parseBackup(source));
       const written: string[] = [];
       try {
         for (const [key, blob] of blobs) {
