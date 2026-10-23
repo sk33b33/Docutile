@@ -4,6 +4,8 @@ export const CATEGORY_NOTES: Record<string, string> = {
   "General business": "Everyday document packs for suppliers, clients, compliance reviews and general submissions.",
   "South African DOJ":
     "Department of Justice and Constitutional Development: services of the Master of the High Court. Checklists are transcribed from justice.gov.za; this is a preparation aid, not legal advice.",
+  "Master of the High Court: other services":
+    "The Master's other divisions: the Guardian's Fund, curators and tutors, and insolvent estates. Checklists are transcribed from justice.gov.za; where the DOJ publishes only a form, the service says so. This is a preparation aid, not legal advice.",
   "South African Courts":
     "Services applied for at magistrate's courts. Checklists are transcribed from justice.gov.za; this is a preparation aid, not legal advice.",
 };

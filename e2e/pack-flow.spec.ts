@@ -180,8 +180,8 @@ test("large PDF export keeps the page responsive and supports cancel", async ({ 
 test("South African DOJ checklist: tiles, form numbers, source, and readiness from required documents only", async ({ page }) => {
   await page.goto("/packs/new");
   await expect(page.getByRole("heading", { name: "South African DOJ" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Estates" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Trusts" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Estates", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Trusts", exact: true })).toBeVisible();
   await expect(page.getByRole("radio", { name: /Register an inter vivos trust/ })).toBeVisible();
   await page.locator("#pack-name").fill("Estate of J Citizen");
   await page.locator("#pack-organisationName").fill("Master of the High Court");
@@ -213,6 +213,10 @@ test("services catalogue lists every DOJ service by subcategory and starts a pac
   await expect(estates).toContainText("9 services");
   await expect(trusts).toContainText("13 services");
   await expect(page.getByRole("heading", { name: "Register a testamentary trust" })).toBeVisible();
+  // The Master's other divisions are a separate category with their own subcategories.
+  await expect(page.getByRole("heading", { name: /^Master of the High Court: other services/ })).toContainText("31 services");
+  for (const sub of ["Guardian's Fund", "Curators and tutors", "Insolvent estates"]) await expect(page.getByRole("heading", { name: new RegExp(`^${sub}`) })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Apply for maintenance, an allowance or interest from the Guardian's Fund" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Liquidation and distribution account (executor)" })).toBeVisible();
 
   // Tiles are listed per service, with form numbers.

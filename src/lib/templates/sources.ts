@@ -8,6 +8,8 @@ export const SOURCES = {
   estatesOverview: { label: `${master}: Deceased estates`, url: "https://www.justice.gov.za/master/deceased.html", retrievedOn: RETRIEVED },
   faq: { label: `${master}: Frequently asked questions`, url: "https://www.justice.gov.za/master/faq.html", retrievedOn: RETRIEVED },
   forms: { label: `${master}: Forms`, url: "https://www.justice.gov.za/master/forms.html", retrievedOn: RETRIEVED },
+  guardians: { label: `${master}: Guardians and the Guardian's Fund (FAQ)`, url: "https://www.justice.gov.za/master/guardian.html", retrievedOn: RETRIEVED },
+  gfAllowance: { label: "DOJ&CD: Applications for maintenance / allowance from the Guardian's Fund (requirements)", url: "https://www.justice.gov.za/master/m_forms/GF_AllowanceReq.pdf", retrievedOn: RETRIEVED },
   trusts: { label: `${master}: Administration of trusts`, url: "https://justice.gov.za/master/trust.html", retrievedOn: RETRIEVED, pageUpdated: "31 Oct 2024" },
   maintenance: { label: "DOJ&CD Maintenance leaflet (2026) and Maintenance FAQ", url: "https://www.justice.gov.za/vg/mnt-FAQ-2026.pdf", retrievedOn: RETRIEVED },
   dvForms: { label: "DOJ&CD Domestic Violence forms (Regulations 2022, published 14 Apr 2023)", url: "https://www.justice.gov.za/forms/form_dva.htm", retrievedOn: RETRIEVED },

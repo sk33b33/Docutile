@@ -106,6 +106,15 @@
       "MBU12",
       "MBU19"
     ],
+    "https://www.justice.gov.za/master/guardian.html": [
+      "J251",
+      "J251A",
+      "J341",
+      "J341A"
+    ],
+    "https://www.justice.gov.za/master/m_forms/GF_AllowanceReq.pdf": [
+      "J341"
+    ],
     "https://www.justice.gov.za/master/m_forms/J401_trust-registration-amendment-eform.pdf": [
       "J401"
     ],

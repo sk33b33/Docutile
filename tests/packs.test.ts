@@ -108,7 +108,7 @@ describe("mergeTemplates", () => {
   });
 });
 
-import { COURTS_CATEGORY, DOJ_CATEGORY, DOJ_TEMPLATES, DOMESTIC_VIOLENCE, ESTATES, MAINTENANCE, TRUSTS } from "@/lib/templates/doj";
+import { COURTS_CATEGORY, CURATORS_TUTORS, DOJ_CATEGORY, DOJ_TEMPLATES, DOMESTIC_VIOLENCE, ESTATES, GUARDIANS_FUND, INSOLVENT_ESTATES, MAINTENANCE, MASTER_OTHER_CATEGORY, TRUSTS } from "@/lib/templates/doj";
 import { canMerge } from "@/lib/pdf/merge";
 import { groupByCategory } from "@/lib/templates/categories";
 
@@ -144,6 +144,25 @@ describe("South African DOJ catalogue", () => {
       "tpl_doj_protection_order", "tpl_doj_dv_report", "tpl_doj_dv_variation", "tpl_doj_dv_contravention",
       "tpl_doj_dv_warrant", "tpl_doj_dv_monitoring", "tpl_doj_dv_service",
     ]);
+  });
+  it("lists the Master's other divisions in their own category, not under Estates or Trusts", () => {
+    const sub = (name: string) => DOJ_TEMPLATES.filter((t) => t.category === MASTER_OTHER_CATEGORY && t.subcategory === name);
+    expect(sub(GUARDIANS_FUND)).toHaveLength(12);
+    expect(sub(CURATORS_TUTORS)).toHaveLength(3);
+    expect(sub(INSOLVENT_ESTATES)).toHaveLength(16);
+    expect(DOJ_TEMPLATES.filter((t) => t.category === DOJ_CATEGORY).every((t) => t.subcategory === ESTATES || t.subcategory === TRUSTS)).toBe(true);
+  });
+  it("Guardian's Fund services carry the requirements the DOJ publishes", () => {
+    const get = (id: string) => byId(id);
+    const allowance = get("tpl_doj_gf_allowance");
+    const req = (slotId: string) => allowance.slots.find((x) => x.id === slotId)?.required;
+    expect([req("doj_ga_j341"), req("doj_ga_bank"), req("doj_ga_cert"), req("doj_ga_minor_id"), req("doj_ga_guardian_id")]).toEqual([true, true, true, true, true]);
+    expect([req("doj_ga_school"), req("doj_ga_quotes"), req("doj_ga_adoption")]).toEqual([false, false, false]);
+    expect(get("tpl_doj_gf_claim").slots.map((x) => x.formRef).filter(Boolean)).toContain("J251");
+    expect(get("tpl_doj_gf_fideicommissary").slots.map((x) => x.formRef)).toEqual(expect.arrayContaining(["J251", "J251A"]));
+    const school = get("tpl_doj_gf_school_fees");
+    expect(school.slots.every((x) => x.required)).toBe(true);
+    expect(get("tpl_doj_curator_apply").slots.find((x) => x.formRef === "J197")?.required).toBe(true);
   });
   it("cites an official justice.gov.za source with a retrieval date for every service", () => {
     for (const t of DOJ_TEMPLATES) {
@@ -218,6 +237,7 @@ describe("South African DOJ catalogue", () => {
     expect(g.count).toBe(22);
     expect(g.note).toBeTruthy();
     expect(groups.find((x) => x.category === COURTS_CATEGORY)?.count).toBe(16);
+    expect(groups.find((x) => x.category === MASTER_OTHER_CATEGORY)?.count).toBe(31);
     expect(groups.length).toBeGreaterThan(2);
   });
 });
