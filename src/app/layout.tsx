@@ -3,12 +3,16 @@ import "./globals.css";
 import { AppProvider } from "@/components/providers/AppProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import { Shell } from "@/components/layout/Shell";
+import { ServiceWorkerRegister } from "@/components/layout/ServiceWorker";
 
 export const metadata: Metadata = {
   title: { default: "Docutile", template: "%s · Docutile" },
   description: "Assemble, check and export document packs. Local-first: your files stay in this browser.",
+  applicationName: "Docutile",
+  appleWebApp: { capable: true, title: "Docutile", statusBarStyle: "black-translucent" },
+  icons: { apple: "/icons/apple-touch-icon.png" },
 };
-export const viewport: Viewport = { width: "device-width", initialScale: 1 };
+export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#050816" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -18,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: `try{if(sessionStorage.getItem("docutile:entered")==="1")document.documentElement.dataset.splash="done"}catch(e){}` }} />
         <ToastProvider>
           <AppProvider>
+            <ServiceWorkerRegister />
             <Shell>{children}</Shell>
           </AppProvider>
         </ToastProvider>

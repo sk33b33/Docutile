@@ -8,6 +8,7 @@ import { useApp } from "@/components/providers/AppProvider";
 import { ErrorBanner, Loading } from "@/components/ui/States";
 import { LogoMark } from "./Logo";
 import { Splash, useSplashEntered } from "./Splash";
+import { OfflineBanner } from "./ServiceWorker";
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -105,6 +106,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
       <main id="main" tabIndex={-1} className="min-w-0 flex-1 p-4 outline-none md:p-8">
         <div className="mx-auto max-w-6xl">
+          <OfflineBanner />
           {loadState === "loading" && <Loading label="Opening local storage…" />}
           {loadState === "error" && (
             <ErrorBanner title="Local storage is unavailable">
