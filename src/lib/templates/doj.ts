@@ -4,7 +4,7 @@ import { TRUST_TEMPLATES } from "./trusts";
 
 export { DOJ_CATEGORY, ESTATES } from "./estates";
 export { TRUSTS } from "./trusts";
-export { COURTS_CATEGORY } from "./courts";
+export { COURTS_CATEGORY, MAINTENANCE, DOMESTIC_VIOLENCE } from "./courts";
 
 /**
  * South African Department of Justice and Constitutional Development checklists, transcribed from the official

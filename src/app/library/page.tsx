@@ -29,7 +29,7 @@ export default function LibraryPage() {
       {rows.length === 0 ? (
         <EmptyState title="No documents yet">Files you attach to packs will be listed here.</EmptyState>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-white/10 glass">
+        <div className="relative overflow-x-auto rounded-xl border border-white/10 glass">
           <table className="w-full text-left text-sm">
             <caption className="sr-only">Attached documents</caption>
             <thead className="bg-white/5 text-xs uppercase text-slate-300">

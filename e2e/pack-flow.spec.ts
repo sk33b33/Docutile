@@ -187,7 +187,7 @@ test("South African DOJ checklist: tiles, form numbers, source, and readiness fr
   await page.getByRole("button", { name: "Create pack" }).click();
   await page.waitForURL(/\/packs\/pack_/);
 
-  await expect(page.locator("li[id^=slot-]")).toHaveCount(14);
+  await expect(page.locator("li[id^=slot-]")).toHaveCount(18);
   await expect(tile(page, "Death notice").getByText("Form J294")).toBeVisible();
   await expect(tile(page, "Will and codicils").getByText("Optional")).toBeVisible();
   await expect(page.getByText("0 of 5 required").first()).toBeVisible();
@@ -208,7 +208,7 @@ test("services catalogue lists every DOJ service by subcategory and starts a pac
   const estates = page.getByRole("heading", { name: /^Estates/ });
   const trusts = page.getByRole("heading", { name: /^Trusts/ });
   await expect(estates).toContainText("9 services");
-  await expect(trusts).toContainText("10 services");
+  await expect(trusts).toContainText("13 services");
   await expect(page.getByRole("heading", { name: "Register a testamentary trust" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Liquidation and distribution account (executor)" })).toBeVisible();
 
@@ -220,4 +220,71 @@ test("services catalogue lists every DOJ service by subcategory and starts a pac
   // Create pack from a service preselects it.
   await card.getByRole("link", { name: "Create pack" }).click();
   await expect(page.getByRole("radio", { name: /Register an inter vivos trust/ })).toBeChecked();
+});
+
+test("backup: export a pack, import it as a new draft, and reject bad files", async ({ page }, testInfo) => {
+  await createPack(page);
+  await fileInput(page, "Cover letter").setInputFiles(await pdfFile("letter.pdf", 2));
+  await expect(tile(page, "Cover letter").getByText("letter.pdf").first()).toBeVisible();
+
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Export backup" }).click()]);
+  expect(download.suggestedFilename()).toMatch(/^Q1Onboarding_Backup_\d{4}-\d\d-\d\d\.docutile$/);
+  const backup = testInfo.outputPath("pack.docutile");
+  await download.saveAs(backup);
+
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Q1 onboarding" })).toBeVisible();
+  await page.locator('input[accept=".docutile"]').setInputFiles(backup);
+  await page.waitForURL(/\/packs\/pack_/);
+  await expect(tile(page, "Cover letter").getByText("letter.pdf").first()).toBeVisible();
+  await expect(page.getByText("1 of 2 required").first()).toBeVisible();
+
+  // Two independent packs now exist, and the imported file is previewable data, not a shared reference.
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Q1 onboarding" })).toHaveCount(2);
+
+  // A file that is not a backup is refused with a clear message and creates nothing.
+  await page.locator('input[accept=".docutile"]').setInputFiles({ name: "x.docutile", mimeType: "application/octet-stream", buffer: Buffer.from("this is not a backup file at all") });
+  await expect(page.getByText(/not a Docutile backup/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Q1 onboarding" })).toHaveCount(2);
+});
+
+test("data saved under the old 'packflow' database is migrated to 'docutile' and the old one removed", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByText("No packs yet")).toBeVisible();
+  await page.evaluate(async () => {
+    await new Promise<void>((resolve, reject) => {
+      const req = indexedDB.open("packflow", 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        db.createObjectStore("packs", { keyPath: "id" });
+        db.createObjectStore("blobs");
+        db.createObjectStore("templates", { keyPath: "id" });
+        db.createObjectStore("activity", { keyPath: "id" });
+        db.createObjectStore("settings");
+      };
+      req.onerror = () => reject(req.error);
+      req.onsuccess = () => {
+        const db = req.result;
+        const ts = "2025-01-01T00:00:00.000Z";
+        const tx = db.transaction(["packs", "blobs"], "readwrite");
+        tx.objectStore("blobs").put(new Blob(["%PDF-1.4 legacy"], { type: "application/pdf" }), "blob_legacy");
+        tx.objectStore("packs").put({
+          id: "pack_legacy", name: "Legacy pack", organisationName: "Old Co", submissionType: "", referenceNumber: "", dueDate: "", notes: "",
+          templateId: null, templateName: "Custom checklist", status: "draft", createdAt: ts, updatedAt: ts, exportedAt: null,
+          slots: [{ id: "s1", templateSlotId: null, name: "Old doc", description: "", required: true, acceptedTypes: ["pdf"], maxFileSizeBytes: 1000000, allowMultiple: false,
+            files: [{ id: "f1", originalName: "old.pdf", displayName: "old.pdf", mimeType: "application/pdf", sizeBytes: 15, lastModified: 0, blobKey: "blob_legacy", uploadedAt: ts }] }],
+        });
+        tx.oncomplete = () => { db.close(); resolve(); };
+        tx.onerror = () => reject(tx.error);
+      };
+    });
+  });
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Legacy pack" })).toBeVisible();
+  await page.getByRole("link", { name: "Legacy pack" }).click();
+  await expect(page.getByText("old.pdf").first()).toBeVisible();
+  const names = await page.evaluate(async () => (await indexedDB.databases()).map((d) => d.name));
+  expect(names).not.toContain("packflow");
+  expect(names).toContain("docutile");
 });

@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, Upload } from "lucide-react";
+import { useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useApp } from "@/components/providers/AppProvider";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/Dialog";
@@ -14,7 +16,9 @@ import { formatDate, formatDateTime } from "@/lib/format";
 import type { Pack } from "@/types";
 
 export default function DashboardPage() {
-  const { packs, deletePack, log } = useApp();
+  const { packs, deletePack, importBackup, log } = useApp();
+  const router = useRouter();
+  const importRef = useRef<HTMLInputElement>(null);
   const { notify } = useToast();
   const [toDelete, setToDelete] = useState<Pack | null>(null);
 
@@ -31,13 +35,32 @@ export default function DashboardPage() {
     }
   }
 
+  async function onImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      const pack = await importBackup(file);
+      notify("success", `Imported "${pack.name}" as a new draft with ${pack.slots.reduce((n, s) => n + s.files.length, 0)} file(s).`);
+      router.push(`/packs/${pack.id}`);
+    } catch (err) {
+      notify("error", err instanceof Error ? err.message : "The backup could not be imported.");
+    }
+  }
+
   return (
     <>
       <PageHeader
         title="Dashboard"
         description="Recent packs saved in this browser."
-        actions={<LinkButton href="/packs/new" variant="primary">Create new pack</LinkButton>}
+        actions={
+          <>
+            <Button onClick={() => importRef.current?.click()}><Upload className="h-4 w-4" aria-hidden /> Import backup</Button>
+            <LinkButton href="/packs/new" variant="primary">Create new pack</LinkButton>
+          </>
+        }
       />
+      <input ref={importRef} type="file" accept=".docutile" className="sr-only" tabIndex={-1} aria-hidden onChange={onImport} />
       {packs.length === 0 ? (
         <EmptyState
           title="No packs yet"

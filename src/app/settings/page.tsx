@@ -50,7 +50,7 @@ export default function SettingsPage() {
 
         <section className="rounded-lg border border-white/10 glass p-5">
           <h2 className="text-base font-semibold">Local storage</h2>
-          <p className="mt-2 text-sm text-slate-200">Drafts, files, templates and activity are stored in this browser using IndexedDB. They are not encrypted by Docutile, not backed up, and not shared with other people or devices. Clearing browser data, or using private browsing, can remove them. Download anything you need to keep.</p>
+          <p className="mt-2 text-sm text-slate-200">Drafts, files, templates and activity are stored in this browser using IndexedDB. They are not encrypted by Docutile, not backed up, and not shared with other people or devices. Clearing browser data, or using private browsing, can remove them. Use &ldquo;Export backup&rdquo; on a pack to save a copy as a file (not encrypted), and &ldquo;Import backup&rdquo; on the dashboard to restore it. Download anything else you need to keep.</p>
           <Button variant="danger" className="mt-4" onClick={() => setConfirmClear(true)}>Clear all local data…</Button>
         </section>
       </div>

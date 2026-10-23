@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { DEFAULT_MAX_FILE_SIZE_BYTES } from "@/lib/constants";
 import { newId } from "@/lib/id";
+import { parseBackup, remapForImport } from "@/lib/backup";
 import { BUILT_IN_TEMPLATES, mergeTemplates } from "@/lib/templates";
 import { IndexedDbRepository } from "@/lib/storage/indexeddb";
 import type { Repository } from "@/lib/storage/repository";
@@ -23,6 +24,8 @@ interface AppContextValue {
   /** Persists a pack (updating `updatedAt`) and refreshes in-memory state. Throws StorageError on failure. */
   savePack: (pack: Pack) => Promise<Pack>;
   deletePack: (id: string) => Promise<void>;
+  /** Validates a backup file and adds its pack under new ids. Throws BackupError or StorageError. */
+  importBackup: (file: Blob) => Promise<Pack>;
   saveTemplate: (t: Template) => Promise<void>;
   deleteTemplate: (id: string) => Promise<void>;
   saveSettings: (s: Settings) => Promise<void>;
@@ -105,6 +108,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [repo],
   );
 
+  const importBackup = useCallback(
+    async (file: Blob) => {
+      const { pack, blobs } = remapForImport(await parseBackup(file));
+      const written: string[] = [];
+      try {
+        for (const [key, blob] of blobs) {
+          await repo.putBlob(key, blob);
+          written.push(key);
+        }
+        const saved = await savePack(pack);
+        await log("pack_created", `Imported pack "${saved.name}" from a backup file`, saved.id);
+        return saved;
+      } catch (e) {
+        await repo.deleteBlobs(written).catch(() => undefined); // no half-imported files left behind
+        throw e;
+      }
+    },
+    [repo, savePack, log],
+  );
+
   const saveTemplate = useCallback(
     async (t: Template) => {
       await repo.saveTemplate(t);
@@ -142,7 +165,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const value: AppContextValue = {
     repo, loadState, loadError, packs, templates, customisedTemplateIds, activity, settings,
-    savePack, deletePack, saveTemplate, deleteTemplate, saveSettings, log, clearAllData, reload,
+    savePack, deletePack, importBackup, saveTemplate, deleteTemplate, saveSettings, log, clearAllData, reload,
   };
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

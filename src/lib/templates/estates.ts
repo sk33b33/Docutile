@@ -6,12 +6,14 @@ export const DOJ_CATEGORY = "South African DOJ";
 export const ESTATES = "Estates";
 const E = { category: DOJ_CATEGORY, subcategory: ESTATES } as const;
 
-const marriageProof = "Applies if the deceased was married. Marriage certificate, proof of registration of a customary marriage, minutes of a family meeting (where registration cannot be proved), proof of a religious (Muslim or Hindu) marriage, or a declaration of a same-sex life partnership, as the Master requests.";
+const marriageProof = "Applies if the deceased was married (or divorced). Marriage certificate, divorce order, proof of registration of a customary marriage, minutes of a family meeting (where registration cannot be proved), proof of a religious (Muslim or Hindu) marriage, or a declaration of a same-sex life partnership, as the Master requests.";
 const will = "Applies if there is a will. Lodge the original will and any codicils or documents purporting to be such. The Master cannot accept a certified copy of a will, so keep a scan here for your records and hand the originals in.";
 const nextOfKin = "Required if the deceased did not leave a valid will.";
 const pre2007 = "Applies only if the deceased died before 2007: confirms the estate has not already been reported to another Master's Office or service point.";
 const bankValue = "Supports the inventory: confirmation of the value of a bank account (Annexure B, Chief Master Directive 09/2023). Applies if the inventory includes bank accounts.";
 const policyValue = "Supports the inventory: confirmation of the value of an insurance policy (Annexure C, Chief Master Directive 09/2023). Applies if the inventory includes policies.";
+
+const durban = " Listed on the Durban Master's Office checklist; confirm with your own Master's Office.";
 
 export const ESTATE_TEMPLATES: Template[] = [
   tpl(
@@ -19,11 +21,15 @@ export const ESTATE_TEMPLATES: Template[] = [
     "Report a deceased estate: over R250 000",
     "Reporting documents for the Master of the High Court (letters of executorship). Report within 14 days of death to the Master's Office where the deceased normally lived.",
     SOURCES.estatesReport,
-    { ...E, checklist: "published", checklistNote: "Official reporting list for estates over R250 000, plus the optional inventory-support forms from the DOJ forms page." },
+    { ...E, checklist: "published", checklistNote: "Official reporting list for estates over R250 000, plus optional tiles from the DOJ forms page and the Durban Master's Office checklist. Note: the Durban checklist asks for the J190 where the estate is above R125 000, not R250 000: confirm the threshold with your Master's Office." },
     [
       slot("doj_eo_j294", "Death notice", true, "Completed Death Notice, in English or Afrikaans.", "J294"),
       slot("doj_eo_death", "Death certificate", true, "Original or certified copy of the death certificate."),
       slot("doj_eo_marriage", "Proof of marriage", false, marriageProof),
+      slot("doj_eo_deceased_id", "Deceased's ID (certified copy)", false, "Certified copy of the deceased's identity document." + durban),
+      slot("doj_eo_care", "Affidavit of care", false, "Applies if there is a minor child: completed by the child's caregiver." + durban),
+      slot("doj_eo_party_ids", "IDs of applicant and nominating heirs", false, "Certified copies of the ID of the applicant and of everyone nominating the applicant." + durban, undefined, true),
+      slot("doj_eo_minor_births", "Birth certificates of minors", false, "Applies if there are minor heirs: certified copies of their birth certificates." + durban, undefined, true),
       slot("doj_eo_decl", "Declaration of marriage by the surviving spouse", false, "Applies if there is a surviving spouse: states how the deceased was married."),
       slot("doj_eo_will", "Will and codicils", false, will, undefined, true),
       slot("doj_eo_j192", "Next-of-kin affidavit", false, nextOfKin, "J192"),
@@ -42,11 +48,15 @@ export const ESTATE_TEMPLATES: Template[] = [
     "Report a deceased estate: under R250 000",
     "Reporting documents where the Master may issue letters of authority (section 18(3), Administration of Estates Act) instead of letters of executorship. Service points only handle estates with no valid will and a gross value below R125 000 (where PEAS is not in use).",
     SOURCES.estatesReport,
-    { ...E, checklist: "published", checklistNote: "Official reporting list for estates under R250 000, plus the optional inventory-support forms from the DOJ forms page." },
+    { ...E, checklist: "published", checklistNote: "Official reporting list for estates under R250 000, plus optional tiles from the DOJ forms page and the Durban Master's Office checklist, which treats R125 000 as its threshold: confirm with your Master's Office." },
     [
       slot("doj_eu_j294", "Death notice", true, "Completed Death Notice, in English or Afrikaans.", "J294"),
       slot("doj_eu_death", "Death certificate", true, "Original or certified copy of the death certificate."),
       slot("doj_eu_marriage", "Proof of marriage", false, marriageProof),
+      slot("doj_eu_deceased_id", "Deceased's ID (certified copy)", false, "Certified copy of the deceased's identity document." + durban),
+      slot("doj_eu_care", "Affidavit of care", false, "Applies if there is a minor child: completed by the child's caregiver." + durban),
+      slot("doj_eu_party_ids", "IDs of applicant and nominating heirs", false, "Certified copies of the ID of the applicant and of everyone nominating the applicant." + durban, undefined, true),
+      slot("doj_eu_minor_births", "Birth certificates of minors", false, "Applies if there are minor heirs: certified copies of their birth certificates." + durban, undefined, true),
       slot("doj_eu_decl", "Declaration of subsisting marriages", false, "Applies if the deceased was married."),
       slot("doj_eu_will", "Will and codicils", false, will, undefined, true),
       slot("doj_eu_j192", "Next-of-kin affidavit", false, nextOfKin, "J192"),
@@ -54,6 +64,7 @@ export const ESTATE_TEMPLATES: Template[] = [
       slot("doj_eu_bank", "Bank account value confirmation", false, bankValue, "MBU 09(A)", true),
       slot("doj_eu_policy", "Policy value confirmation", false, policyValue, "MBU 09(B)", true),
       slot("doj_eu_creditors", "List of creditors", false, "Applies if the deceased had creditors."),
+      slot("doj_eu_vouchers", "Vouchers for the assets", false, "For section 18(3) estates: proof of fixed property, movables and bank accounts." + durban, undefined, true),
       slot("doj_eu_nom", "Heirs' nominations of Master's representative", false, "Applies in an intestate estate, or where no executor is nominated or the nominee declines.", undefined, true),
       slot("doj_eu_pre2007", "Declaration: estate not reported elsewhere", false, pre2007),
       slot("doj_eu_j155", "Acceptance of Master's directions", true, "Completed and signed by the person nominated as Master's representative.", "J155"),

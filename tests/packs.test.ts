@@ -108,7 +108,7 @@ describe("mergeTemplates", () => {
   });
 });
 
-import { COURTS_CATEGORY, DOJ_CATEGORY, DOJ_TEMPLATES, ESTATES, TRUSTS } from "@/lib/templates/doj";
+import { COURTS_CATEGORY, DOJ_CATEGORY, DOJ_TEMPLATES, DOMESTIC_VIOLENCE, ESTATES, MAINTENANCE, TRUSTS } from "@/lib/templates/doj";
 import { canMerge } from "@/lib/pdf/merge";
 import { groupByCategory } from "@/lib/templates/categories";
 
@@ -128,14 +128,22 @@ describe("South African DOJ catalogue", () => {
   });
   it("lists every Trusts service", () => {
     expect(doj(TRUSTS).map((t) => t.id)).toEqual([
-      "tpl_doj_trust_inter_vivos", "tpl_doj_trust_testamentary", "tpl_doj_trust_amend", "tpl_doj_trust_trustee_details",
+      "tpl_doj_trust_inter_vivos", "tpl_doj_trust_testamentary", "tpl_doj_trust_amend_trustees", "tpl_doj_trust_amend_auditor",
+      "tpl_doj_trust_amend_bond", "tpl_doj_trust_amend_general", "tpl_doj_trust_trustee_details",
       "tpl_doj_trust_bo_register", "tpl_doj_trust_terminated_report", "tpl_doj_trust_dormant_report",
       "tpl_doj_trust_termination", "tpl_doj_trust_info", "tpl_doj_trust_copies",
     ]);
   });
-  it("keeps maintenance and protection orders in a separate courts category", () => {
-    const courts = DOJ_TEMPLATES.filter((t) => t.category === COURTS_CATEGORY).map((t) => t.id);
-    expect(courts).toEqual(["tpl_doj_maintenance", "tpl_doj_protection_order"]);
+  it("keeps maintenance and domestic violence services in a separate courts category", () => {
+    const sub = (name: string) => DOJ_TEMPLATES.filter((t) => t.category === COURTS_CATEGORY && t.subcategory === name).map((t) => t.id);
+    expect(sub(MAINTENANCE)).toEqual([
+      "tpl_doj_maintenance", "tpl_doj_mnt_substitution", "tpl_doj_mnt_consent", "tpl_doj_mnt_variation", "tpl_doj_mnt_enforcement",
+      "tpl_doj_mnt_warrant", "tpl_doj_mnt_emoluments", "tpl_doj_mnt_debts", "tpl_doj_mnt_noncompliance",
+    ]);
+    expect(sub(DOMESTIC_VIOLENCE)).toEqual([
+      "tpl_doj_protection_order", "tpl_doj_dv_report", "tpl_doj_dv_variation", "tpl_doj_dv_contravention",
+      "tpl_doj_dv_warrant", "tpl_doj_dv_monitoring", "tpl_doj_dv_service",
+    ]);
   });
   it("cites an official justice.gov.za source with a retrieval date for every service", () => {
     for (const t of DOJ_TEMPLATES) {
@@ -171,7 +179,21 @@ describe("South African DOJ catalogue", () => {
     expect(refs("tpl_doj_estate_copies")).toContain("JM46");
     expect(refs("tpl_doj_trust_inter_vivos")).toEqual(expect.arrayContaining(["J401", "J417", "J405", "J450", "J344"]));
     expect(refs("tpl_doj_trust_trustee_details")).toEqual(["J417"]);
-    expect(refs("tpl_doj_protection_order")).toEqual(["Form 6", "Form 2"]);
+    expect(refs("tpl_doj_protection_order")).toEqual(["Form 06 · J480", "Form 07 · J965"]);
+    expect(refs("tpl_doj_maintenance")).toContain("Form A · J101");
+    expect(refs("tpl_doj_trust_amend_trustees")).toEqual(["J401", "J417"]);
+  });
+  it("covers the JM21 stated case with a required tile and its conditional parts", () => {
+    const t = byId("tpl_doj_trust_testamentary");
+    expect(t.slots.find((x) => x.id === "doj_tt_jm21")).toMatchObject({ required: true, formRef: "JM21" });
+    expect(t.slots.find((x) => x.id === "doj_tt_views")?.required).toBe(false);
+    expect(t.slots.find((x) => x.id === "doj_tt_auditor")?.required).toBe(false);
+  });
+  it("uses the 2022 Domestic Violence Regulations numbering, not the outdated 2011 page", () => {
+    const apply = byId("tpl_doj_protection_order");
+    expect(apply.source?.url).toContain("form_dva");
+    expect(apply.slots.find((x) => x.formRef === "Form 06 · J480")?.required).toBe(true);
+    expect(apply.slots.some((x) => x.formRef === "Form 2" || x.formRef === "Form 6")).toBe(false);
   });
   it("requires an affidavit for a foreign estate", () => {
     const aff = byId("tpl_doj_estate_foreign").slots.find((s) => s.id === "doj_ef_affidavit")!;
@@ -193,9 +215,73 @@ describe("South African DOJ catalogue", () => {
     const groups = groupByCategory(BUILT_IN_TEMPLATES);
     const g = groups.find((x) => x.category === DOJ_CATEGORY)!;
     expect(g.subgroups.map((x) => x.name)).toEqual([ESTATES, TRUSTS]);
-    expect(g.count).toBe(19);
+    expect(g.count).toBe(22);
     expect(g.note).toBeTruthy();
-    expect(groups.find((x) => x.category === COURTS_CATEGORY)?.count).toBe(2);
+    expect(groups.find((x) => x.category === COURTS_CATEGORY)?.count).toBe(16);
     expect(groups.length).toBeGreaterThan(2);
+  });
+});
+
+import { RECHECK_AFTER_DAYS, daysSince } from "@/lib/format";
+import { BACKUP_MAGIC, BackupError, backupFileName, createBackup, parseBackup, remapForImport } from "@/lib/backup";
+
+describe("daysSince", () => {
+  it("counts whole days and never goes negative", () => {
+    const now = new Date(2026, 9, 23, 12, 0, 0);
+    expect(daysSince("2026-10-22", now)).toBe(1);
+    expect(daysSince("2026-07-01", now)).toBe(114);
+    expect(daysSince("2027-01-01", now)).toBe(0);
+    expect(daysSince("garbage", now)).toBe(0);
+    expect(RECHECK_AFTER_DAYS).toBe(90);
+  });
+  it("every built-in checklist was read on a valid date", () => {
+    for (const t of DOJ_TEMPLATES) expect(Number.isNaN(daysSince(t.source!.retrievedOn)), t.id).toBe(false);
+  });
+});
+
+describe("pack backup", () => {
+  const PDF = () => new Blob(["%PDF-1.4 body"], { type: "application/pdf" });
+  const sample = () => {
+    const p = pack([slot("a", true, [file("a.pdf"), file("b.pdf")]), slot("b", false)]);
+    p.status = "ready";
+    return p;
+  };
+  const loader = (extra: Record<string, Blob> = {}) => async (k: string) => ({ "b_a.pdf": PDF(), "b_b.pdf": PDF(), ...extra })[k] ?? null;
+
+  it("round-trips a pack with its files", async () => {
+    const blob = await createBackup(sample(), loader());
+    const parsed = await parseBackup(blob);
+    expect(parsed.pack.name).toBe("Test pack");
+    expect(parsed.pack.slots[0].files.map((f) => f.originalName)).toEqual(["a.pdf", "b.pdf"]);
+    expect(await parsed.blobs.get("b_a.pdf")!.text()).toBe("%PDF-1.4 body");
+    expect(parsed.pack.status).toBe("draft"); // an import is never trusted as "ready"
+  });
+  it("imports under fresh ids so nothing can be overwritten", async () => {
+    const parsed = await parseBackup(await createBackup(sample(), loader()));
+    const { pack: imported, blobs } = remapForImport(parsed);
+    expect(imported.id).not.toBe("p1");
+    const oldKeys = new Set(["b_a.pdf", "b_b.pdf"]);
+    for (const f of imported.slots[0].files) {
+      expect(oldKeys.has(f.blobKey)).toBe(false);
+      expect(blobs.has(f.blobKey)).toBe(true);
+    }
+    expect(new Set(imported.slots[0].files.map((f) => f.id)).size).toBe(2);
+  });
+  it("refuses to back up a pack with a missing stored file", async () => {
+    await expect(createBackup(sample(), async () => null)).rejects.toBeInstanceOf(BackupError);
+  });
+  it("rejects files that are not backups, truncated, or tampered with", async () => {
+    await expect(parseBackup(new Blob(["hello world, not a backup at all"]))).rejects.toThrow(/not a Docutile backup/);
+    const good = await createBackup(sample(), loader());
+    await expect(parseBackup(good.slice(0, good.size - 3))).rejects.toThrow(/damaged or incomplete/);
+    await expect(parseBackup(new Blob([BACKUP_MAGIC, new Uint8Array([0, 0, 0, 0])]))).rejects.toBeInstanceOf(BackupError);
+    await expect(parseBackup(new Blob([BACKUP_MAGIC, new Uint8Array([0x7f, 0xff, 0xff, 0xff])]))).rejects.toBeInstanceOf(BackupError);
+  });
+  it("rejects an embedded file whose contents do not match its extension", async () => {
+    const bad = await createBackup(sample(), loader({ "b_a.pdf": new Blob(["MZ this is not a pdf"]) }));
+    await expect(parseBackup(bad)).rejects.toThrow(/does not look like a valid \.pdf/);
+  });
+  it("builds a safe file name", () => {
+    expect(backupFileName("Estate of J. Citizen / 2026", new Date("2026-10-23T10:00:00Z"))).toBe("EstateOfJCitizen2026_Backup_2026-10-23.docutile");
   });
 });

@@ -26,3 +26,13 @@ export function getExtension(fileName: string): string {
 export function formatTypeList(types: string[]): string {
   return types.map((t) => t.toUpperCase()).join(", ");
 }
+
+/** Whole days from an ISO date (YYYY-MM-DD or full ISO) to `now`; never negative. */
+export function daysSince(iso: string, now: Date = new Date()): number {
+  const then = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? new Date(`${iso}T00:00:00`) : new Date(iso);
+  if (Number.isNaN(then.getTime())) return 0;
+  return Math.max(0, Math.floor((now.getTime() - then.getTime()) / 86_400_000));
+}
+
+/** Checklists transcribed from official pages are re-checked after this many days. */
+export const RECHECK_AFTER_DAYS = 90;

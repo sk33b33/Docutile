@@ -3,7 +3,7 @@ import type { ChecklistStatus, Template, TemplateSlot, TemplateSource } from "@/
 
 /** Scans and photos only, so every document in a pack built from these can be merged into the combined PDF. */
 export const SCAN_TYPES = ["pdf", "png", "jpg", "jpeg"];
-export const RETRIEVED = "2026-10-22";
+export const RETRIEVED = "2026-10-23";
 const SEED_DATE = "2025-01-01T00:00:00.000Z";
 
 export function slot(

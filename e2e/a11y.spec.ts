@@ -98,3 +98,45 @@ test("keyboard: reorder with the drag handle, dialog focus and Escape", async ({
   await expect(dialog).toBeHidden();
   await expect(trigger).toBeFocused();
 });
+
+test("reflow: no horizontal scrolling at 320 CSS px (WCAG 1.4.10) on every main page", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.setViewportSize({ width: 320, height: 700 });
+  await page.goto("/packs/new");
+  await page.locator("#pack-name").fill("Reflow");
+  await page.locator("#pack-organisationName").fill("Acme");
+  await page.getByRole("radio", { name: /deceased estate: over R250 000/ }).check();
+  await page.getByRole("button", { name: "Create pack" }).click();
+  await page.waitForURL(/\/packs\/pack_/);
+  const builder = page.url();
+  await page.locator("li[id^=slot-]").first().locator("input[type=file]").first().setInputFiles(await pdfFile("a.pdf", 1));
+  await expect(page.getByText("a.pdf").first()).toBeVisible();
+  const pages: [string, string][] = [
+    ["/", "Dashboard"], ["/packs/new", "New pack"], [builder, "Reflow"], [`${builder}/review`, "Review: Reflow"],
+    ["/templates", "Services & templates"], ["/library", "Document library"], ["/activity", "Activity"], ["/settings", "Settings"],
+  ];
+  for (const [path, marker] of pages) {
+    await page.goto(path);
+    await expect(page.getByRole("heading", { name: marker, exact: true }).first()).toBeVisible();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow, `horizontal overflow on ${path}`).toBeLessThanOrEqual(1);
+  }
+});
+
+test("user preferences: reduced motion stops the background animation; forced colours keep controls usable", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  await expect(page.getByText("No packs yet")).toBeVisible();
+  expect(await page.evaluate(() => getComputedStyle(document.body, "::before").animationName)).toBe("none");
+
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  expect(await page.evaluate(() => getComputedStyle(document.body, "::before").animationName)).toBe("drift");
+
+  await page.emulateMedia({ forcedColors: "active" });
+  await page.goto("/packs/new");
+  await expect(page.getByRole("button", { name: "Create pack" })).toBeVisible();
+  await page.locator("#pack-name").fill("High contrast");
+  await expect(page.locator("#pack-name")).toHaveValue("High contrast");
+  // Glass effects are disabled in forced-colours mode so system colours stay legible.
+  expect(await page.evaluate(() => getComputedStyle(document.querySelector(".glass-input")!).backdropFilter)).toBe("none");
+});

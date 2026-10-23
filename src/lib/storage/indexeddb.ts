@@ -1,4 +1,5 @@
 import { StorageError, type Repository } from "./repository";
+import { deleteLegacyDatabase, migrateLegacyDatabase } from "./legacy";
 import type { ActivityEvent, Pack, Settings, Template } from "@/types";
 
 const DB_NAME = "docutile";
@@ -39,9 +40,16 @@ export class IndexedDbRepository implements Repository {
       }
       const req = indexedDB.open(DB_NAME, DB_VERSION);
       req.onupgradeneeded = (ev) => upgrade(req.result, ev.oldVersion);
-      req.onsuccess = () => {
-        req.result.onversionchange = () => req.result.close();
-        resolve(req.result);
+      req.onsuccess = async () => {
+        const db = req.result;
+        db.onversionchange = () => db.close();
+        // Move data saved under the old app name. Failure must never stop the app from opening.
+        try {
+          if ((await migrateLegacyDatabase(db)) > 0) await deleteLegacyDatabase();
+        } catch {
+          /* old data stays where it was */
+        }
+        resolve(db);
       };
       req.onerror = () =>
         reject(new StorageError("Could not open local storage. Private browsing may be blocking it.", "unavailable"));

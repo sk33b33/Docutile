@@ -6,7 +6,8 @@ import {
   DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent,
 } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { ClipboardList, Pencil, Plus, Save } from "lucide-react";
+import { Archive, ClipboardList, Pencil, Plus, Save } from "lucide-react";
+import { BackupError, backupFileName, createBackup } from "@/lib/backup";
 import { useApp } from "@/components/providers/AppProvider";
 import { PackMetaForm } from "@/components/packs/PackMetaForm";
 import { CompletenessSummary } from "@/components/packs/CompletenessSummary";
@@ -96,6 +97,16 @@ export default function PackBuilderPage() {
     try { await ed.moveSlot(from, to); } catch (err) { fail(err, "The new order could not be saved."); }
   }
 
+  async function exportBackup() {
+    try {
+      const blob = await createBackup(pack!, (k) => repo.getBlob(k));
+      downloadBlob(blob, backupFileName(pack!.name));
+      notify("success", "Backup downloaded. It is not encrypted: store it somewhere safe.");
+    } catch (err) {
+      notify("error", err instanceof BackupError || err instanceof Error ? err.message : "The backup could not be created.");
+    }
+  }
+
   async function open(file: AttachedFile, mode: "preview" | "download") {
     try {
       const blob = await repo.getBlob(file.blobKey);
@@ -130,6 +141,7 @@ export default function PackBuilderPage() {
             <Button onClick={async () => { try { await ed.saveDraft(); notify("success", "Draft saved in this browser."); } catch (e) { fail(e, "Draft could not be saved."); } }}>
               <Save className="h-4 w-4" aria-hidden /> Save draft
             </Button>
+            <Button onClick={exportBackup}><Archive className="h-4 w-4" aria-hidden /> Export backup</Button>
             <LinkButton href={`/packs/${pack.id}/review`} variant="primary"><ClipboardList className="h-4 w-4" aria-hidden /> Review &amp; export</LinkButton>
           </>
         }
