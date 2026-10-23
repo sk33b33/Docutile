@@ -48,6 +48,7 @@ npm run build && npm start
   - Verified against primary documents on 2026-10-23: the JM21 memorandum, the J401 form, the Durban Master's Office estate checklist, and the DOJ domestic violence and maintenance forms pages. This replaced an outdated 2011 protection-order page that used superseded form numbers.
   - Each source note warns when a checklist was read more than 90 days ago.
   - Not covered: the Master's other divisions (insolvent estates, curators and tutors, Guardian's Fund) and services where the DOJ publishes no document list at all.
+- **Splash screen:** a full-screen "Tap to enter" splash with the centred Docutile logo, shown once per browser session. The whole screen is one button (tap, click, Enter or Space), it takes focus on load, the app behind it is inert until you enter, and reduced motion skips the animation.
 - **Visual design:** dark futuristic theme with translucent glass panels, glow and ambient motion, with reduced-motion and reduced-transparency fallbacks and a plain print stylesheet.
 - **Document library**: read-only index of every file stored in this browser, with download.
 - **Activity**: local event log (pack created, files attached/replaced/removed, reorders, exports, ...).

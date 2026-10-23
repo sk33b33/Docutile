@@ -7,6 +7,7 @@ import { Activity, FolderOpen, LayoutDashboard, LayoutTemplate, Menu, PlusCircle
 import { useApp } from "@/components/providers/AppProvider";
 import { ErrorBanner, Loading } from "@/components/ui/States";
 import { LogoMark } from "./Logo";
+import { Splash, useSplashEntered } from "./Splash";
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -49,6 +50,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { loadState, loadError } = useApp();
   const [menuOpen, setMenuOpen] = useState(false);
+  const entered = useSplashEntered();
 
   // Dropping a file outside a tile would make the browser navigate to it; block that globally.
   useEffect(() => {
@@ -70,7 +72,9 @@ export function Shell({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen md:flex">
+    <>
+    {/* inert: nothing behind the splash can be focused or read until the user enters */}
+    <div className="min-h-screen md:flex" inert={!entered}>
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-slate-950 focus:p-2 focus:text-white">Skip to content</a>
 
       <aside aria-label="Sidebar" className="no-print hidden w-64 shrink-0 flex-col border-r border-white/10 bg-slate-950/55 p-4 backdrop-blur-2xl md:flex">
@@ -99,7 +103,7 @@ export function Shell({ children }: { children: ReactNode }) {
         )}
       </header>
 
-      <main id="main" className="min-w-0 flex-1 p-4 md:p-8">
+      <main id="main" tabIndex={-1} className="min-w-0 flex-1 p-4 outline-none md:p-8">
         <div className="mx-auto max-w-6xl">
           {loadState === "loading" && <Loading label="Opening local storage…" />}
           {loadState === "error" && (
@@ -111,5 +115,7 @@ export function Shell({ children }: { children: ReactNode }) {
         </div>
       </main>
     </div>
+    {!entered && <Splash onEntered={() => document.getElementById("main")?.focus()} />}
+    </>
   );
 }

@@ -1,6 +1,9 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { pdfFile } from "./fixtures";
+import { skipSplash } from "./skip-splash";
+
+test.beforeEach(({ page }) => skipSplash(page));
 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"];
 

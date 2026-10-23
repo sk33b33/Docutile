@@ -2,6 +2,9 @@ import { expect, test, type Page } from "@playwright/test";
 import { PDFDocument } from "pdf-lib";
 import fs from "node:fs";
 import { docx, fakePdf, pdfFile } from "./fixtures";
+import { skipSplash } from "./skip-splash";
+
+test.beforeEach(({ page }) => skipSplash(page));
 
 const tile = (p: Page, name: string) =>
   p.locator("li[id^=slot-]").filter({ has: p.getByRole("heading", { name }) });

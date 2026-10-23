@@ -96,13 +96,37 @@ input[type="checkbox"], input[type="radio"] { accent-color: #22d3ee; }
 ::selection { background: rgb(var(--glow-cyan) / 0.4); }
 
 /* Respect user preferences. */
+/* Splash screen */
+.splash {
+  background:
+    radial-gradient(40rem 32rem at 50% 42%, rgb(var(--glow-cyan) / 0.22), transparent 62%),
+    radial-gradient(50rem 40rem at 20% 110%, rgb(var(--glow-violet) / 0.30), transparent 60%),
+    radial-gradient(40rem 30rem at 100% -10%, rgb(var(--glow-violet) / 0.25), transparent 60%),
+    rgb(5 8 22 / 0.985);
+  backdrop-filter: var(--blur-strong);
+  -webkit-backdrop-filter: var(--blur-strong);
+  animation: splash-in 0.6s ease-out both;
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+.splash[data-leaving] { opacity: 0; transform: scale(1.04); }
+html[data-splash="done"] .splash { display: none; }
+.splash-logo-wrap { display: grid; place-items: center; border-radius: 9999px; padding: 1.25rem; box-shadow: 0 0 60px rgb(var(--glow-cyan) / 0.35), inset 0 0 40px rgb(var(--glow-violet) / 0.25); border: 1px solid rgb(var(--glow-cyan) / 0.35); background: rgb(255 255 255 / 0.04); animation: splash-pulse 3.2s ease-in-out infinite; }
+.splash-logo { filter: drop-shadow(0 0 14px rgb(var(--glow-cyan) / 0.8)); }
+.splash-hint { animation: splash-blink 2.2s ease-in-out infinite; }
+@keyframes splash-in { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes splash-pulse { 0%, 100% { box-shadow: 0 0 50px rgb(var(--glow-cyan) / 0.30), inset 0 0 40px rgb(var(--glow-violet) / 0.2); } 50% { box-shadow: 0 0 90px rgb(var(--glow-cyan) / 0.55), inset 0 0 50px rgb(var(--glow-violet) / 0.35); } }
+@keyframes splash-blink { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+
 @media (prefers-reduced-motion: reduce) {
   body::before { animation: none; }
+  .splash, .splash-logo-wrap, .splash-hint { animation: none; }
+  .splash { transition: none; }
   * { transition: none !important; }
 }
 @media (prefers-reduced-transparency: reduce), (forced-colors: active) {
   :root { --blur: none; --blur-strong: none; --blur-input: none; --blur-card: none; }
   .glass, .glass-strong, .glass-input, .option-card, .chip { background: #0f172a; }
+  .splash { background: #050816; }
 }
 
 @media print {

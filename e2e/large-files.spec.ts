@@ -2,6 +2,9 @@ import { expect, test, type Page } from "@playwright/test";
 import { PDFDocument, PDFName } from "pdf-lib";
 import { randomBytes } from "node:crypto";
 import fs from "node:fs";
+import { skipSplash } from "./skip-splash";
+
+test.beforeEach(({ page }) => skipSplash(page));
 
 const MB = 1024 * 1024;
 

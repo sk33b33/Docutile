@@ -12,8 +12,10 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
+        {/* Avoid a flash of the splash on reload within a session that already entered. */}
+        <script dangerouslySetInnerHTML={{ __html: `try{if(sessionStorage.getItem("docutile:entered")==="1")document.documentElement.dataset.splash="done"}catch(e){}` }} />
         <ToastProvider>
           <AppProvider>
             <Shell>{children}</Shell>
