@@ -1,8 +1,8 @@
 import { StorageError, type Repository } from "./repository";
-import { deleteLegacyDatabase, migrateLegacyDatabase } from "./legacy";
+import { LEGACY_DB_NAME, deleteDatabase, migrateFromDatabase } from "./legacy";
 import type { ActivityEvent, Pack, Settings, Template } from "@/types";
 
-const DB_NAME = "docutile";
+export const DEFAULT_DB_NAME = "docutile";
 /** Bump when stores change and add a step to `upgrade`. */
 const DB_VERSION = 1;
 
@@ -28,8 +28,14 @@ function upgrade(db: IDBDatabase, oldVersion: number) {
   }
 }
 
+/** Set once any account has taken over the data that was saved before sign-in existed. */
+const CLAIMED_KEY = "docutile:shared-data-claimed";
+
 export class IndexedDbRepository implements Repository {
   private dbPromise: Promise<IDBDatabase> | null = null;
+
+  /** `dbName` is per signed-in account; without sign-in it is the shared "docutile" database. */
+  constructor(private readonly dbName: string = DEFAULT_DB_NAME) {}
 
   private open(): Promise<IDBDatabase> {
     if (this.dbPromise) return this.dbPromise;
@@ -38,14 +44,19 @@ export class IndexedDbRepository implements Repository {
         reject(new StorageError("This browser does not support local storage (IndexedDB). Drafts cannot be saved.", "unavailable"));
         return;
       }
-      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      const req = indexedDB.open(this.dbName, DB_VERSION);
       req.onupgradeneeded = (ev) => upgrade(req.result, ev.oldVersion);
       req.onsuccess = async () => {
         const db = req.result;
         db.onversionchange = () => db.close();
         // Move data saved under the old app name. Failure must never stop the app from opening.
         try {
-          if ((await migrateLegacyDatabase(db)) > 0) await deleteLegacyDatabase();
+          if ((await migrateFromDatabase(db, LEGACY_DB_NAME)) > 0) await deleteDatabase(LEGACY_DB_NAME);
+          // Signed in: the first account to arrive takes over what was saved before sign-in existed.
+          if (this.dbName !== DEFAULT_DB_NAME && !localStorage.getItem(CLAIMED_KEY)) {
+            if ((await migrateFromDatabase(db, DEFAULT_DB_NAME)) > 0) await deleteDatabase(DEFAULT_DB_NAME);
+            localStorage.setItem(CLAIMED_KEY, "1");
+          }
         } catch {
           /* old data stays where it was */
         }

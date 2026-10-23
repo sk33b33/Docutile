@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
-import { spawn, type ChildProcess } from "node:child_process";
 import { skipSplash } from "./skip-splash";
+import { startServer, stop } from "./server";
 import { pdfFile } from "./fixtures";
 
 test.beforeEach(({ page }) => skipSplash(page));
@@ -9,7 +9,7 @@ const controlled = (page: Page) => page.waitForFunction(() => !!navigator.servic
 /** Polls from the test side: waitForFunction does not wait for an async predicate. */
 const cached = (page: Page, path: string) =>
   expect
-    .poll(() => page.evaluate(async (p) => !!(await (await caches.open("docutile-pages-v1")).match(p)), path), { timeout: 20_000, message: `${path} should be cached by the service worker` })
+    .poll(() => page.evaluate(async (p) => !!(await (await caches.open("docutile-pages-v5")).match(p)), path), { timeout: 20_000, message: `${path} should be cached by the service worker` })
     .toBe(true);
 
 test("installable: valid manifest with real icons, theme colour and apple touch icon", async ({ page, request }) => {
@@ -35,22 +35,6 @@ test("service worker takes control and caches the app shell", async ({ page }) =
   for (const path of ["/", "/packs/new", "/templates", "/offline.html"]) await cached(page, path);
 });
 
-/** `next start` forks a child, so kill the whole process group. SIGKILL, because a graceful shutdown keeps serving the browser's open connections. */
-function stop(proc: ChildProcess) {
-  try { if (proc.pid) process.kill(-proc.pid, "SIGKILL"); } catch { /* already gone */ }
-}
-
-/** Starts a second production server we can really shut down (Playwright's offline switch does not stop service-worker requests). */
-async function startServer(port: number): Promise<ChildProcess> {
-  const proc = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-p", String(port)], { stdio: "ignore", detached: true });
-  for (let i = 0; i < 60; i++) {
-    try { if ((await fetch(`http://localhost:${port}/`)).ok) return proc; } catch { /* not up yet */ }
-    await new Promise((r) => setTimeout(r, 500));
-  }
-  stop(proc);
-  throw new Error("test server did not start");
-}
-
 test("works offline: with the server stopped, visited pages reload, packs stay editable, unknown pages show the offline page", async ({ page, context }) => {
   test.setTimeout(120_000);
   const PORT = 3199;
@@ -68,6 +52,11 @@ test("works offline: with the server stopped, visited pages reload, packs stay e
     await expect(page.getByRole("heading", { name: "Offline pack" })).toBeVisible();
     await cached(page, builder); // the app asked the worker to remember this in-app navigation
     for (const path of ["/", "/templates"]) await cached(page, path);
+    await page.getByRole("link", { name: /Review/ }).click(); // visiting the review page online saves it for offline use
+    await expect(page.getByRole("heading", { name: /^Review:/ })).toBeVisible();
+    await cached(page, `${builder}/review`);
+    await page.goto(`${origin}${builder}`); // back on the builder, which is also saved
+    await expect(page.getByRole("heading", { name: "Offline pack" })).toBeVisible();
 
     // Genuinely offline: nothing is listening any more.
     stop(server);
@@ -81,6 +70,15 @@ test("works offline: with the server stopped, visited pages reload, packs stay e
     // Files can still be attached and stored locally, and other saved pages still open.
     await page.locator("li[id^=slot-]").first().locator("input[type=file]").first().setInputFiles(await pdfFile("offline.pdf", 1));
     await expect(page.getByText("offline.pdf").first()).toBeVisible();
+    await page.locator("li[id^=slot-]").nth(1).locator("input[type=file]").first().setInputFiles(await pdfFile("offline2.pdf", 2));
+    await expect(page.getByText("Ready: all required")).toBeVisible();
+
+    // Exporting works with no server at all: the PDF is built in the browser.
+    await page.getByRole("link", { name: /Review/ }).click();
+    await expect(page.getByRole("heading", { name: /^Review:/ })).toBeVisible();
+    const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: /Create & download PDF/ }).click()]);
+    expect(download.suggestedFilename()).toMatch(/^Acme_SubmissionPack_/);
+
     await page.goto(`${origin}/templates`);
     await expect(page.getByRole("heading", { name: "Services & templates" })).toBeVisible();
 

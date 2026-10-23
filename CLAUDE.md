@@ -14,7 +14,7 @@ You are building **Docutile**, an enterprise-style document pack compilation web
 9. Do not send confidential documents to third-party APIs. No analytics or remote upload by default.
 10. Do not commit secrets or hard-code credentials. Add `.env.example` only if environment variables are required.
 11. Add tests for important logic, particularly required-document validation, ordering, file validation, and pack completeness.
-12. If a feature depends on infrastructure not present (authentication, shared cloud storage, e-signature, email delivery, external submission), build a clear interface/placeholder and document what is needed rather than faking it.
+12. Sign-in is real Google OAuth that activates only when its environment variables are set (see `.env.example` and the README); never fake a sign-in or an email login. If a feature depends on infrastructure not present (authentication, shared cloud storage, e-signature, email delivery, external submission), build a clear interface/placeholder and document what is needed rather than faking it.
 
 ## Preferred technical direction
 - Next.js with App Router and TypeScript

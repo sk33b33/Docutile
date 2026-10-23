@@ -14,6 +14,8 @@ type LoadState = "loading" | "ready" | "error";
 
 interface AppContextValue {
   repo: Repository;
+  /** The signed-in Google account, or null when sign-in is not configured. */
+  user: SignedInUser | null;
   loadState: LoadState;
   loadError: string | null;
   packs: Pack[];
@@ -49,8 +51,14 @@ export function useApp(): AppContextValue {
 
 const byUpdatedDesc = (a: Pack, b: Pack) => b.updatedAt.localeCompare(a.updatedAt);
 
-export function AppProvider({ children }: { children: ReactNode }) {
-  const repo = useMemo<Repository>(() => new IndexedDbRepository(), []);
+export interface SignedInUser {
+  email: string;
+  name: string | null;
+  image: string | null;
+}
+
+export function AppProvider({ children, storageName, user }: { children: ReactNode; storageName?: string; user?: SignedInUser | null }) {
+  const repo = useMemo<Repository>(() => new IndexedDbRepository(storageName), [storageName]);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [packs, setPacks] = useState<Pack[]>([]);
@@ -213,7 +221,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const customisedTemplateIds = useMemo(() => savedTemplates.map((t) => t.id), [savedTemplates]);
 
   const value: AppContextValue = {
-    repo, loadState, loadError, packs, templates, customisedTemplateIds, activity, settings,
+    repo, user: user ?? null, loadState, loadError, packs, templates, customisedTemplateIds, activity, settings,
     savePack, deletePack, importBackup, duplicatePack, clearActivity, saveTemplate, deleteTemplate, saveSettings, log, clearAllData, reload,
   };
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

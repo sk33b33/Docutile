@@ -480,3 +480,45 @@ describe("clearActivity", () => {
     expect(await repo.getBlob("b_a.pdf")).not.toBeNull();
   });
 });
+
+import { authEnabled, isEmailAllowed, isPublicPath, missingAuthSettings, safeCallbackPath, userStorageName } from "@/lib/auth/config";
+
+describe("sign-in configuration", () => {
+  const full = { AUTH_SECRET: "s", AUTH_GOOGLE_ID: "id", AUTH_GOOGLE_SECRET: "secret" };
+  it("is on only when every credential is set", () => {
+    expect(authEnabled({})).toBe(false);
+    expect(authEnabled({ ...full, AUTH_GOOGLE_SECRET: "  " })).toBe(false);
+    expect(authEnabled(full)).toBe(true);
+    expect(missingAuthSettings({ AUTH_SECRET: "x" })).toEqual(["AUTH_GOOGLE_ID", "AUTH_GOOGLE_SECRET"]);
+  });
+  it("accepts only Google-verified addresses", () => {
+    expect(isEmailAllowed("a@b.co", true, {})).toBe(true);
+    expect(isEmailAllowed("a@b.co", false, {})).toBe(false);
+    expect(isEmailAllowed("a@b.co", undefined, {})).toBe(false);
+    expect(isEmailAllowed("", true, {})).toBe(false);
+    expect(isEmailAllowed(null, true, {})).toBe(false);
+  });
+  it("honours the allow-lists, case-insensitively", () => {
+    const env = { ALLOWED_EMAILS: "Boss@Firm.co.za, intern@gmail.com", ALLOWED_DOMAINS: "@partner.org" };
+    expect(isEmailAllowed("boss@firm.co.za", true, env)).toBe(true);
+    expect(isEmailAllowed("INTERN@gmail.com", true, env)).toBe(true);
+    expect(isEmailAllowed("anyone@partner.org", true, env)).toBe(true);
+    expect(isEmailAllowed("stranger@gmail.com", true, env)).toBe(false);
+    expect(isEmailAllowed("x@evilpartner.org", true, env)).toBe(false);
+    expect(isEmailAllowed("x@partner.org.evil.com", true, env)).toBe(false);
+  });
+  it("gives each account its own stable storage name that does not reveal the address", () => {
+    expect(userStorageName("A@B.co")).toBe(userStorageName(" a@b.co "));
+    expect(userStorageName("a@b.co")).not.toBe(userStorageName("c@d.co"));
+    expect(userStorageName("a@b.co")).toMatch(/^docutile-u-[0-9a-f]{16}$/);
+    expect(userStorageName("a@b.co")).not.toContain("a@b");
+  });
+  it("lets only the sign-in screen, auth endpoints and install files through unauthenticated", () => {
+    for (const p of ["/login", "/api/auth/signin", "/api/auth/callback/google", "/manifest.webmanifest", "/sw.js", "/offline.html", "/icons/icon-192.png"]) expect(isPublicPath(p), p).toBe(true);
+    for (const p of ["/", "/packs/new", "/library", "/templates", "/api/other", "/login-evil", "/packs/x"]) expect(isPublicPath(p), p).toBe(false);
+  });
+  it("only redirects to same-site paths after sign-in", () => {
+    expect(safeCallbackPath("/packs/pack_1")).toBe("/packs/pack_1");
+    for (const bad of [null, undefined, "", "https://evil.com", "//evil.com", "/\\evil.com", "javascript:alert(1)", "/login"]) expect(safeCallbackPath(bad as string), String(bad)).toBe("/");
+  });
+});

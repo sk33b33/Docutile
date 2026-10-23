@@ -1,0 +1,25 @@
+import NextAuth from "next-auth";
+import Google from "next-auth/providers/google";
+import { isEmailAllowed } from "@/lib/auth/config";
+
+/**
+ * Google sign-in (Auth.js). Credentials come from environment variables: AUTH_SECRET, AUTH_GOOGLE_ID,
+ * AUTH_GOOGLE_SECRET. Sessions are signed cookies; no user database is involved, and no documents ever
+ * reach the server: Docutile's files stay in the browser.
+ */
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  providers: [Google],
+  session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 7 },
+  trustHost: true,
+  pages: { signIn: "/login", error: "/login" },
+  callbacks: {
+    // Only addresses Google has verified, and only those on the optional allow-list.
+    signIn({ profile }) {
+      return isEmailAllowed(profile?.email, profile?.email_verified as boolean | undefined);
+    },
+    jwt({ token, profile }) {
+      if (profile?.email) token.email = profile.email.toLowerCase();
+      return token;
+    },
+  },
+});

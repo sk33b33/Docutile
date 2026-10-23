@@ -9,6 +9,7 @@ import { ErrorBanner, Loading } from "@/components/ui/States";
 import { LogoMark } from "./Logo";
 import { Splash, useSplashEntered } from "./Splash";
 import { OfflineBanner } from "./ServiceWorker";
+import { UserMenu } from "./UserMenu";
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -66,6 +67,9 @@ export function Shell({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // The sign-in screen stands alone: no navigation, no splash.
+  if (pathname === "/login") return <main id="main">{children}</main>;
+
   const brand = (
     <Link href="/" className="flex items-center gap-2 text-xl font-semibold tracking-tight text-white">
       <LogoMark className="h-6 w-6" /> Docutile
@@ -81,7 +85,10 @@ export function Shell({ children }: { children: ReactNode }) {
       <aside aria-label="Sidebar" className="no-print hidden w-64 shrink-0 flex-col border-r border-white/10 bg-slate-950/55 p-4 backdrop-blur-2xl md:flex">
         <div className="mb-6 px-2">{brand}</div>
         <nav aria-label="Primary"><NavList pathname={pathname} /></nav>
-        <p className="mt-auto px-2 text-xs text-slate-400">Local-first. Files stay in this browser.</p>
+        <div className="mt-auto">
+          <UserMenu />
+          <p className="mt-4 px-2 text-xs text-slate-400">Local-first. Files stay in this browser.</p>
+        </div>
       </aside>
 
       <header className="no-print border-b border-white/10 bg-slate-950/60 p-3 backdrop-blur-2xl md:hidden">
@@ -100,6 +107,7 @@ export function Shell({ children }: { children: ReactNode }) {
         {menuOpen && (
           <nav id="mobile-nav" aria-label="Primary" className="mt-3">
             <NavList pathname={pathname} onNavigate={() => setMenuOpen(false)} />
+            <UserMenu />
           </nav>
         )}
       </header>

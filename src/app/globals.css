@@ -136,3 +136,10 @@ html[data-splash="done"] .splash { display: none; }
   *, *::before, *::after { color: #000 !important; background: transparent !important; box-shadow: none !important; text-shadow: none !important; backdrop-filter: none !important; filter: none !important; border-color: #999 !important; }
   body { background: #fff !important; }
 }
+
+/* Sign-in screen: the same glow as the splash, behind a centred card. */
+.login-bg {
+  background:
+    radial-gradient(40rem 32rem at 50% 30%, rgb(var(--glow-cyan) / 0.20), transparent 62%),
+    radial-gradient(50rem 40rem at 10% 110%, rgb(var(--glow-violet) / 0.28), transparent 60%);
+}

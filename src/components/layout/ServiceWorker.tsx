@@ -32,6 +32,10 @@ export function ServiceWorkerRegister() {
     navigator.serviceWorker
       .register("/sw.js")
       .then((reg) => {
+        // A few seconds after loading, when the page has settled, ask the worker to save the main pages for offline use.
+        setTimeout(() => {
+          if (navigator.onLine) navigator.serviceWorker.ready.then((r) => r.active?.postMessage({ type: "WARM" })).catch(() => undefined);
+        }, 4000);
         reg.addEventListener("updatefound", () => {
           const incoming = reg.installing;
           incoming?.addEventListener("statechange", () => {

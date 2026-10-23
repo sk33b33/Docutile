@@ -49,7 +49,8 @@ npm run build && npm start
   - Each source note warns when a checklist was read more than 90 days ago.
   - **Master's other divisions (31, a separate category):** the Guardian's Fund (claims by account holders, owners of capital, untraced beneficiaries, executors, liquidators and creditors; allowances and school fees, with the DOJ's own requirement lists), curators and tutors (J197 and the notice forms), and insolvent estates (the liquidation notice, bond and national-list forms, mostly form-only because the DOJ publishes no supporting-document list).
   - Services where the DOJ publishes nothing but a form are labelled "Form only" and offer a single optional supporting-documents tile.
-- **Installable and offline (PWA):** a web app manifest with icons and a service worker let you install Docutile on a phone or desktop. The worker caches only the app itself (never your documents, which stay in IndexedDB), saves each page you open so it reloads offline, and shows a friendly offline page for pages it has not seen. Production builds only. After an update, a message asks you to reload. Limit: a page you have never opened cannot load offline.
+- **Installable and offline (PWA):** a web app manifest with icons and a service worker let you install Docutile on a phone or desktop. The worker caches only the app itself (never your documents, which stay in IndexedDB), saves each page you open so it reloads offline, and shows a friendly offline page for pages it has not seen. Production builds only. After an update, a message asks you to reload. The worker script is left to the browser's own cache (a service worker would strip its configuration), and if a web worker cannot start for any reason, export falls back to merging on the main thread. Limit: a page you have never opened cannot load offline.
+- **Sign-in with Google (optional, off until you configure it):** a sign-in screen with a "Continue with Google" button (real Google OAuth with PKCE, via Auth.js). When switched on, signed-out visitors are redirected to it, a signed-in account sees its name and a Sign out button, and **each Google account gets its own separate packs and files in the browser**. The first account to sign in takes over anything saved before sign-in existed. The email box on the screen is deliberately disabled and says why: email and password sign-in needs an account database and an email service, which this version does not have. See "Sign-in with Google" below.
 - **Splash screen:** a full-screen "Tap to enter" splash with the centred Docutile logo, shown once per browser session. The whole screen is one button (tap, click, Enter or Space), it takes focus on load, the app behind it is inert until you enter, and reduced motion skips the animation.
 - **Visual design:** dark futuristic theme with translucent glass panels, glow and ambient motion, with reduced-motion and reduced-transparency fallbacks and a plain print stylesheet.
 - **Document library**: read-only index of every file stored in this browser, with download.
@@ -67,6 +68,24 @@ npm run build && npm start
 - Activity history is informational, not an immutable or compliance-grade audit trail.
 - No authentication, roles, cloud collaboration, e-signature, email delivery, or portal submission. These are out of scope and are not simulated.
 - PDF merging runs in a Web Worker so the page stays responsive on large packs, and an export can be cancelled. Very large packs are still limited by browser memory, since every file is held in memory while merging.
+
+## Sign-in with Google
+
+Sign-in is **off** until all three credentials exist, so a site without them behaves as before (the sign-in screen then says it is not switched on, and the Google button is disabled). To switch it on:
+
+1. In [Google Cloud Console](https://console.cloud.google.com/), create or pick a project, then **APIs & Services → OAuth consent screen**. Choose *External* (or *Internal* for a Google Workspace), give the app a name and support email, and keep the scopes to `openid`, `email` and `profile`. While the app is in *Testing*, only the test users you list can sign in; click *Publish app* for everyone.
+2. **APIs & Services → Credentials → Create credentials → OAuth client ID → Web application.** Under *Authorised redirect URIs* add `https://YOUR-SITE/api/auth/callback/google` (for this project: `https://docutile.vercel.app/api/auth/callback/google`) and, for local development, `http://localhost:3000/api/auth/callback/google`. Copy the *Client ID* and *Client secret*.
+3. In Vercel: **Project → Settings → Environment Variables**, add for *Production*: `AUTH_SECRET` (generate with `openssl rand -base64 32`), `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`. Optionally `ALLOWED_EMAILS` (comma-separated addresses) and/or `ALLOWED_DOMAINS` (comma-separated domains) to restrict who may sign in; with neither, any Google-verified account may. Then redeploy.
+4. Locally, copy `.env.example` to `.env.local` and fill the same values.
+
+What sign-in does and does not do:
+
+- It gates access to the app and separates each account's data **inside one browser**. It does **not** encrypt what is stored on the device, and it does not sync anything: packs and files still live only in that browser, so the same Google account on another device starts empty. Use encrypted backups to move packs.
+- Docutile receives only your name and email from Google. Documents are never sent to a server. Sessions are signed cookies (7 days); there is no user database.
+- The gate only *reads* the session cookie; page requests never re-send it, so a slow response cannot undo a sign-out or an account switch. Only the sign-in and sign-out endpoints set it.
+- Only Google-verified email addresses are accepted. Open-redirect style `callbackUrl` values are ignored.
+- Offline use works from the last signed-in session on that device. Signing out deletes the saved page copies.
+- Not available: email-and-password or email-link sign-in (needs an account database and an email service), and password reset.
 
 ## Maintenance and monitoring
 

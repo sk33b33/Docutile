@@ -41,22 +41,37 @@ export async function mergePackOffThread(
     if (blob) blobs[e.file.blobKey] = blob;
   }
 
+  // If the worker cannot run (blocked, offline without its script, a bad cache), merge on the main thread instead:
+  // the page may freeze briefly on a very large pack, but the export still works.
+  const onMainThread = () => mergePack(pack, async (k) => blobs[k] ?? null, new Date(), onProgress, exportOptions);
+
   return new Promise<MergeResult>((resolve, reject) => {
-    const worker = new Worker(new URL("./merge.worker.ts", import.meta.url), { type: "module" });
+    let worker: Worker;
+    try {
+      worker = new Worker(new URL("./merge.worker.ts", import.meta.url), { type: "module" });
+    } catch {
+      onMainThread().then(resolve, reject);
+      return;
+    }
     const cleanup = () => {
       signal?.removeEventListener("abort", onAbort);
       worker.terminate();
     };
     const onAbort = () => { cleanup(); reject(new MergeCancelledError()); };
+    const fallBack = () => {
+      cleanup();
+      if (signal?.aborted) { reject(new MergeCancelledError()); return; }
+      onMainThread().then(resolve, reject);
+    };
     signal?.addEventListener("abort", onAbort);
 
     worker.onmessage = (ev: MessageEvent<WorkerMessage>) => {
       const msg = ev.data;
       if (msg.type === "progress") onProgress?.(msg.progress);
       else if (msg.type === "done") { cleanup(); resolve(msg.result); }
-      else { cleanup(); reject(new Error(msg.message)); }
+      else fallBack();
     };
-    worker.onerror = (ev) => { cleanup(); reject(new Error(ev.message || "The export worker failed to start.")); };
+    worker.onerror = fallBack;
     worker.postMessage({ pack, blobs, options: exportOptions } satisfies WorkerRequest);
   });
 }

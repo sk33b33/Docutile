@@ -493,3 +493,17 @@ test("activity: clear recent activity with confirmation, keeping packs and files
   await page.goto("/library");
   await expect(page.getByText("keep.pdf")).toBeVisible();
 });
+
+
+test("export still works when the web worker cannot start (falls back to the main thread)", async ({ page }, testInfo) => {
+  await page.route("**/turbopack-worker-*.js*", (route) => route.abort()); // simulate a broken or blocked worker
+  await createPack(page);
+  await fileInput(page, "Cover letter").setInputFiles(await pdfFile("a.pdf", 1));
+  await fileInput(page, "Main document").setInputFiles(await pdfFile("b.pdf", 2));
+  await expect(page.getByText("Ready: all required")).toBeVisible();
+  await page.getByRole("link", { name: /Review/ }).click();
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: /Create & download PDF/ }).click()]);
+  const out = testInfo.outputPath("fallback.pdf");
+  await download.saveAs(out);
+  expect((await PDFDocument.load(fs.readFileSync(out))).getPageCount()).toBe(1 + 1 + 2);
+});

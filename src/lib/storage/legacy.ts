@@ -1,5 +1,6 @@
 /**
- * One-time migration from the pre-rename "packflow" IndexedDB to "docutile".
+ * One-time copy of one IndexedDB into another: from the pre-rename "packflow" database to "docutile", and from the
+ * shared "docutile" database into a signed-in account's own database.
  * Copies every store, and removes the old database only after the copy succeeded.
  * If anything fails the old database is left untouched, so nothing can be lost.
  */
@@ -20,9 +21,9 @@ const done = (tx: IDBTransaction) =>
     tx.onabort = () => reject(tx.error);
   });
 
-function openLegacy(): Promise<IDBDatabase | null> {
+function openSource(name: string): Promise<IDBDatabase | null> {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(LEGACY_DB_NAME);
+    const req = indexedDB.open(name);
     // The old database should already exist at version 1. If this fires, it did not: do not create it.
     req.onupgradeneeded = () => req.transaction?.abort();
     req.onsuccess = () => resolve(req.result);
@@ -32,17 +33,17 @@ function openLegacy(): Promise<IDBDatabase | null> {
 }
 
 /** Returns the number of records copied (0 if there was nothing to do). */
-export async function migrateLegacyDatabase(target: IDBDatabase): Promise<number> {
+export async function migrateFromDatabase(target: IDBDatabase, sourceName: string): Promise<number> {
   // indexedDB.databases() is missing in some older browsers; without it we cannot detect the old DB safely.
   if (typeof indexedDB.databases !== "function") return 0;
   const existing = await indexedDB.databases();
-  if (!existing.some((d) => d.name === LEGACY_DB_NAME)) return 0;
+  if (!existing.some((d) => d.name === sourceName)) return 0;
 
   // Never overwrite data that already lives in the new database.
   const existingPacks = await wrap(target.transaction("packs", "readonly").objectStore("packs").count());
   if (existingPacks > 0) return 0;
 
-  const legacy = await openLegacy();
+  const legacy = await openSource(sourceName);
   if (!legacy) return 0;
   try {
     if (!STORE_NAMES.every((n) => legacy.objectStoreNames.contains(n))) return 0;
@@ -67,9 +68,9 @@ export async function migrateLegacyDatabase(target: IDBDatabase): Promise<number
   }
 }
 
-export function deleteLegacyDatabase(): Promise<void> {
+export function deleteDatabase(name: string): Promise<void> {
   return new Promise((resolve) => {
-    const req = indexedDB.deleteDatabase(LEGACY_DB_NAME);
+    const req = indexedDB.deleteDatabase(name);
     req.onsuccess = () => resolve();
     req.onerror = () => resolve(); // leftover legacy data is harmless
     req.onblocked = () => resolve();
