@@ -149,6 +149,14 @@ test.describe("sign-in switched ON", () => {
     await expect(page.getByRole("heading", { name: "Alice's pack" })).toBeVisible();
   });
 
+  test("a session that is about to end says so, using the cookie's real expiry", async ({ page, context }) => {
+    await skip(page);
+    await signIn(context, "alice@example.com", "Alice Example"); // test cookies last one hour
+    await page.goto(`${ORIGIN}/`);
+    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: /Sign-in ends in/ }).first()).toBeVisible();
+  });
+
   test("the first account to sign in takes over data saved before sign-in existed; later accounts start empty", async ({ page, context }) => {
     await skip(page);
     await page.goto(`${ORIGIN}/login`);

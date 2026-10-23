@@ -23,5 +23,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (profile?.email) token.email = profile.email.toLowerCase();
       return token;
     },
+    // Auth.js reports "now + maxAge" as the session end, but the cookie is not renewed on page views, so
+    // the real end is the token's own expiry. Report that, so the expiry notice is truthful.
+    session({ session, token }) {
+      if (typeof token.exp === "number") session.expires = new Date(token.exp * 1000).toISOString() as typeof session.expires;
+      return session;
+    },
   },
 });

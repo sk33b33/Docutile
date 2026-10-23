@@ -1,15 +1,27 @@
 "use client";
 
-import { useState } from "react";
-import { LogOut } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Clock, LogOut } from "lucide-react";
 import { signOutAction } from "@/app/actions";
 import { useApp } from "@/components/providers/AppProvider";
+import { sessionStatus, type SessionStatus } from "@/lib/auth/session";
 import { SPLASH_KEY } from "./Splash";
 
 /** Signed-in account and a sign-out button. Renders nothing when sign-in is not configured. */
 export function UserMenu() {
   const { user } = useApp();
   const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<SessionStatus | null>(null);
+  const expires = user?.expires;
+
+  // Computed after mount (it depends on the clock) and refreshed every minute.
+  useEffect(() => {
+    const update = () => setStatus(sessionStatus(expires));
+    update();
+    const timer = setInterval(update, 60_000);
+    return () => clearInterval(timer);
+  }, [expires]);
+
   if (!user) return null;
   const label = user.name || user.email;
 
@@ -36,6 +48,18 @@ export function UserMenu() {
           {user.name && <span className="block truncate text-xs text-slate-400">{user.email}</span>}
         </span>
       </div>
+      {status && (
+        <p
+          role={status.state === "ok" ? undefined : "status"}
+          className={`mt-3 flex items-start gap-2 text-xs ${status.state === "ok" ? "text-slate-400" : "text-amber-200"}`}
+        >
+          <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+          <span>
+            {status.label}.
+            {status.state !== "ok" && " Sign out and back in to keep working. Packs saved in this browser are not lost."}
+          </span>
+        </p>
+      )}
       <button
         type="button"
         onClick={signOut}

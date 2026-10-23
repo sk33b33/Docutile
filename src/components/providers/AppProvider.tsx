@@ -55,6 +55,8 @@ export interface SignedInUser {
   email: string;
   name: string | null;
   image: string | null;
+  /** ISO time the sign-in session ends (from Auth.js); null if unknown. */
+  expires: string | null;
 }
 
 export function AppProvider({ children, storageName, user }: { children: ReactNode; storageName?: string; user?: SignedInUser | null }) {

@@ -481,6 +481,7 @@ describe("clearActivity", () => {
   });
 });
 
+import { sessionStatus } from "@/lib/auth/session";
 import { authEnabled, isEmailAllowed, isPublicPath, missingAuthSettings, safeCallbackPath, userStorageName } from "@/lib/auth/config";
 
 describe("sign-in configuration", () => {
@@ -520,5 +521,28 @@ describe("sign-in configuration", () => {
   it("only redirects to same-site paths after sign-in", () => {
     expect(safeCallbackPath("/packs/pack_1")).toBe("/packs/pack_1");
     for (const bad of [null, undefined, "", "https://evil.com", "//evil.com", "/\\evil.com", "javascript:alert(1)", "/login"]) expect(safeCallbackPath(bad as string), String(bad)).toBe("/");
+  });
+});
+
+describe("session expiry notice", () => {
+  const now = Date.parse("2026-01-10T12:00:00Z");
+  const at = (ms: number) => new Date(now + ms).toISOString();
+  const H = 3600_000;
+  it("shows no notice without a usable expiry", () => {
+    expect(sessionStatus(null, now)).toBeNull();
+    expect(sessionStatus("not a date", now)).toBeNull();
+  });
+  it("counts whole days while plenty is left", () => {
+    expect(sessionStatus(at(6.5 * 24 * H), now)).toEqual({ state: "ok", label: "Signed in for 6 more days" });
+    expect(sessionStatus(at(24 * H), now)).toEqual({ state: "ok", label: "Signed in for 1 more day" });
+  });
+  it("warns in the last day and counts hours", () => {
+    expect(sessionStatus(at(5 * H + 1), now)).toEqual({ state: "soon", label: "Sign-in ends in 5 hours" });
+    expect(sessionStatus(at(H), now)).toEqual({ state: "soon", label: "Sign-in ends in 1 hour" });
+    expect(sessionStatus(at(10 * 60_000), now)).toEqual({ state: "soon", label: "Sign-in ends in under an hour" });
+  });
+  it("reports an ended session", () => {
+    expect(sessionStatus(at(0), now)?.state).toBe("expired");
+    expect(sessionStatus(at(-H), now)?.state).toBe("expired");
   });
 });

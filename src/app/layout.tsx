@@ -23,7 +23,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const signInOn = authEnabled();
   const session = signInOn ? await auth() : null;
   const email = session?.user?.email ?? null;
-  const user = email ? { email, name: session?.user?.name ?? null, image: null } : null;
+  const user = email ? { email, name: session?.user?.name ?? null, image: null, expires: session?.expires ?? null } : null;
 
   return (
     <html lang="en" suppressHydrationWarning>
