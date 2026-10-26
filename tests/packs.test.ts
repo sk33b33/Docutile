@@ -483,6 +483,9 @@ describe("clearActivity", () => {
 
 import { packsNeedingBackup, recordBackup, snoozeUntil } from "@/lib/backupReminder";
 import { buildCoverRows } from "@/lib/cover";
+import { FRICTION, MAX_SPEED, SNAP_SPEED, motionTo, nearestIndex, stepMotion, tileTransform, wrap, type Motion } from "@/lib/carousel/physics";
+import { GLOWS, glowForCategory, glowForSub } from "@/lib/carousel/glow";
+import { buildExplorerTree, hasSubLevel } from "@/lib/carousel/tree";
 import { sessionStatus } from "@/lib/auth/session";
 import { authEnabled, isEmailAllowed, isPublicPath, missingAuthSettings, safeCallbackPath, userStorageName } from "@/lib/auth/config";
 
@@ -610,5 +613,97 @@ describe("next steps from the source", () => {
     const p = createPack({ name: "n", organisationName: "o", submissionType: "", referenceNumber: "", dueDate: "", notes: "" }, t);
     expect(p.templateNextSteps).toEqual(t.nextSteps);
     expect(p.templateNextSteps).not.toBe(t.nextSteps); // a copy, so editing a pack never edits the template
+  });
+});
+
+describe("ring carousel motion", () => {
+  /** Runs the motion at 60 frames per second until it settles; returns the end state and elapsed seconds. */
+  function run(start: Motion, maxSeconds = 20) {
+    let m = start;
+    let t = 0;
+    while (t < maxSeconds) {
+      const r = stepMotion(m, 1 / 60);
+      m = r;
+      t += 1 / 60;
+      if (r.settled) return { m, t, settled: true };
+    }
+    return { m, t, settled: false };
+  }
+  it("wraps distances around the ring", () => {
+    expect(wrap(7, 8)).toBe(-1);
+    expect(wrap(-5, 8)).toBe(3);
+    expect(wrap(0, 8)).toBe(0);
+    expect(nearestIndex(-0.4, 5)).toBe(0);
+    expect(nearestIndex(-1.2, 5)).toBe(4);
+    expect(nearestIndex(7.6, 5)).toBe(3);
+  });
+  it("a flick coasts for a while, then locks exactly onto a tile", () => {
+    const { m, t, settled } = run({ p: 0, v: 12 });
+    expect(settled).toBe(true);
+    expect(Number.isInteger(m.p)).toBe(true);
+    expect(m.p).toBeGreaterThan(4); // it travelled, in the direction of the flick
+    expect(t).toBeGreaterThan(1.2); // it spins for a while ...
+    expect(t).toBeLessThan(6); // ... and then stops
+  });
+  it("flicks the other way spin the other way", () => {
+    const { m } = run({ p: 0, v: -10 });
+    expect(m.p).toBeLessThan(-3);
+    expect(Number.isInteger(m.p)).toBe(true);
+  });
+  it("a slow ring is pulled to the nearest tile, as if by a magnet", () => {
+    expect(run({ p: 2.4, v: 0 }).m.p).toBe(2);
+    expect(run({ p: 2.6, v: 0 }).m.p).toBe(3);
+    expect(run({ p: 2.4, v: SNAP_SPEED * 0.9 }).m.p).toBe(3); // still drifting forward: locks onto the next tile
+    expect(run({ p: 2.6, v: -SNAP_SPEED * 0.9 }).m.p).toBe(2); // drifting back: locks onto the previous one
+  });
+  it("speed fades with friction while coasting and a stalled frame cannot fling the ring", () => {
+    const one = stepMotion({ p: 0, v: 10 }, 1);
+    expect(one.v).toBeLessThan(10 * Math.exp(-FRICTION * 0.04));
+    expect(one.p).toBeLessThan(0.6); // dt is capped at 50 ms
+  });
+  it("can be sent to a chosen tile by the shortest way round", () => {
+    const m = motionTo({ p: 0, v: 0 }, 7, 8);
+    expect(m.target).toBe(-1);
+    expect(run(m).m.p).toBe(-1);
+    expect(MAX_SPEED).toBeGreaterThan(10);
+  });
+  it("lays tiles out with the centre largest in front, symmetric sides and the back smallest", () => {
+    const geo = { radius: 300, rise: 40, push: 50 };
+    const t = (i: number) => tileTransform(i, 0, 8, geo);
+    expect(t(0).scale).toBeCloseTo(1.3, 5);
+    expect(t(0).x).toBeCloseTo(0, 5);
+    expect(t(0).zIndex).toBeGreaterThan(t(1).zIndex);
+    expect(t(1).x).toBeCloseTo(-t(7).x, 5);
+    expect(t(1).scale).toBeCloseTo(t(7).scale, 5);
+    expect(t(1).scale).toBeGreaterThan(0.75); // the two neighbours are medium ...
+    expect(t(1).scale).toBeLessThan(t(0).scale);
+    expect(t(2).scale).toBeLessThan(0.6); // ... and everything further round stays small
+    expect(t(4).scale).toBeCloseTo(0.55, 3); // directly behind
+    expect(t(4).y).toBeLessThan(t(0).y); // the back of the ring is higher, as if seen from above
+    for (let i = 0; i < 8; i++) expect(t(i).opacity).toBeGreaterThanOrEqual(0.55);
+  });
+});
+
+describe("explorer levels and glow colours", () => {
+  const tree = buildExplorerTree(BUILT_IN_TEMPLATES);
+  it("groups services into categories and subcategories", () => {
+    expect(tree.map((c) => c.title)).toEqual(["General business", "South African DOJ", "Master of the High Court: other services", "South African Courts"]);
+    const doj = tree.find((c) => c.title === "South African DOJ")!;
+    expect(doj.subs.map((s) => s.title)).toEqual(["Estates", "Trusts"]);
+    expect(hasSubLevel(doj)).toBe(true);
+    expect(doj.count).toBe(doj.subs.reduce((n, s) => n + s.templates.length, 0));
+  });
+  it("gives every id once, and skips the subcategory step for a category with one group", () => {
+    const ids = tree.flatMap((c) => [c.id, ...c.subs.map((s) => s.id)]);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(hasSubLevel({ id: "x", title: "X", count: 1, subs: [{ id: "x-all0", templates: [] }] })).toBe(false);
+  });
+  it("gives each category its own glow, and tints subcategories differently from their parent", () => {
+    const glows = tree.map((c, i) => glowForCategory(c.title, i));
+    expect(new Set(glows).size).toBe(tree.length);
+    const parent = glowForCategory("South African DOJ", 1);
+    expect(parent).toBe(GLOWS.violet);
+    const subs = [0, 1, 2].map((i) => glowForSub(parent, i));
+    expect(new Set([parent, ...subs]).size).toBe(4);
   });
 });

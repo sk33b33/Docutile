@@ -13,6 +13,7 @@ import { ConfirmDialog, Dialog } from "@/components/ui/Dialog";
 import { inputClass } from "@/components/ui/Field";
 import { EmptyState, PageHeader, ProgressBar } from "@/components/ui/States";
 import { useToast } from "@/components/ui/Toast";
+import { ServiceExplorer } from "@/components/explorer/ServiceExplorer";
 import { BackupReminder } from "@/components/packs/BackupReminder";
 import { PackStatusBadge } from "@/components/packs/PackStatusBadge";
 import { dueStatus, sortPacks, type PackSort } from "@/lib/due";
@@ -92,6 +93,7 @@ export default function DashboardPage() {
         }
       />
       <BackupReminder />
+      <ServiceExplorer />
       <input ref={importRef} type="file" accept=".docutile" className="sr-only" tabIndex={-1} aria-hidden onChange={onImport} />
       {packs.length === 0 ? (
         <EmptyState
