@@ -90,8 +90,15 @@ test("the ring spins when dragged, coasts, then locks a tile in the centre and h
   await expect(stage(page)).toHaveAttribute("data-dragging", "true");
   await page.mouse.up();
   await expect(stage(page)).toHaveAttribute("data-settled", "false"); // coasting, not stopped
+  // While it coasts, different tiles pass through the centre. (It may end on the tile it started on: a hard flick
+  // can turn the ring exactly once round.)
+  const passed = new Set<string | null>([start]);
+  for (let i = 0; i < 40 && (await stage(page).getAttribute("data-settled")) !== "true"; i++) {
+    passed.add(await centre(page));
+    await page.waitForTimeout(40);
+  }
   await settled(page);
-  expect(await centre(page)).not.toBe(start);
+  expect(passed.size, "tiles that passed through the centre").toBeGreaterThan(2);
   await expect(stage(page).locator(".ring-bob")).toHaveCount(1); // the locked centre tile hovers
 
   // Grabbing a coasting ring stops it.

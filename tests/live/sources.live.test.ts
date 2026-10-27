@@ -6,7 +6,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { CIPC_TEMPLATES } from "@/lib/templates/cipc";
 import { DOJ_TEMPLATES } from "@/lib/templates/doj";
 import { SOURCES } from "@/lib/templates/sources";
-import { formTokensFor, htmlToText, pageUpdatedIso, templateDateIso } from "@/lib/sources/tokens";
+import { cipcFormsSection, cipcMainText, formTokensFor, htmlToText, pageUpdatedIso, templateDateIso } from "@/lib/sources/tokens";
 
 const TEMPLATES = [...DOJ_TEMPLATES, ...CIPC_TEMPLATES];
 
@@ -54,13 +54,23 @@ function fetchSource(url: string): Fetched {
   const { status, body } = curl(url);
   if (status !== 200) return { url, ok: false, error: `HTTP ${status}`, text: "", tokens: [] };
   const text = htmlToText(body);
-  return { url, ok: text.length > 200, error: text.length > 200 ? undefined : "page text is almost empty", text, tokens: formTokensFor(url, text) };
+  if (CIPC_FORMS_PAGES.includes(url)) {
+    // Only the forms list counts: the rest of a CIPC page also names forms, so it would hide a form that was removed.
+    const section = cipcFormsSection(text);
+    return { url, ok: !!section && section.length > 200, error: section ? undefined : 'no "FORM CODE" list found: the page layout changed', text, tokens: section ? formTokensFor(url, section) : [] };
+  }
+  // CIPC pages carry popups that name forms after the main content; leave them out of the form numbers.
+  const isCipc = /(^|\.)cipc\.co\.za\//i.test(url);
+  return { url, ok: text.length > 200, error: text.length > 200 ? undefined : "page text is almost empty", text, tokens: formTokensFor(url, isCipc ? cipcMainText(text) : text) };
 }
 
 /** CIPC's current forms pages: the checklists name forms from a 2021 list, so check them against these too. */
-const CIPC_FORMS_PAGES = [SOURCES.cipcCompanyForms.url, SOURCES.cipcCloseCorpForms.url];
-/** Forms CIPC's supporting-documents list names but its forms pages do not carry. */
-const NOT_ON_FORMS_PAGES = new Set(["COR94", "CR1", "CR4", "CR5", "CR8", "JM12"]);
+const CIPC_FORMS_PAGES = [
+  SOURCES.cipcCompanyForms.url, SOURCES.cipcCloseCorpForms.url,
+  SOURCES.cipcTmForms.url, SOURCES.cipcPatentForms.url, SOURCES.cipcDesignForms.url, SOURCES.cipcCopyrightForms.url,
+];
+/** Forms named in CIPC's supporting-documents list, its application forms or its "maintain" pages but not carried on its forms pages. */
+const NOT_ON_FORMS_PAGES = new Set(["COR94", "CR1", "CR4", "CR5", "CR8", "JM12", "P9", "D18"]);
 
 const urls = [...new Set([...TEMPLATES.map((t) => t.source!.url), ...CIPC_FORMS_PAGES])].sort();
 const fetched = new Map<string, Fetched>();

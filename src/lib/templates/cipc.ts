@@ -1,4 +1,6 @@
 import type { Template, TemplateSlot } from "@/types";
+import { CIPC_CATEGORY } from "./cipc-category";
+import { CIPC_IP_TEMPLATES } from "./cipc-ip";
 import { slot, tpl } from "./helpers";
 import { SOURCES } from "./sources";
 
@@ -6,12 +8,12 @@ import { SOURCES } from "./sources";
  * Companies and Intellectual Property Commission (CIPC) services for companies and close corporations,
  * transcribed from CIPC's own "contact details, forms and supporting documents required" list (2021 edition,
  * still hosted on cipc.co.za), its current Forms and Fees pages and its 2026 e-mail address list (all read
- * 2026-10-27). Intellectual property (trade marks, patents, designs, copyright), annual returns and beneficial
- * ownership filing are not included yet.
+ * 2026-10-27). Intellectual property services are in ./cipc-ip.ts. Annual returns and beneficial ownership filing
+ * are not included.
  * "Required" = listed by the source without a condition. Conditional items are optional, with the condition in the
  * help text; users can change a slot's required flag in the pack builder.
  */
-export const CIPC_CATEGORY = "CIPC";
+export { CIPC_CATEGORY };
 export const REGISTER_COMPANY = "Register a company";
 export const COMPANY_NAMES = "Company names";
 export const COMPANY_CHANGES = "Company changes";
@@ -526,7 +528,10 @@ const BUSINESS_RESCUE_TEMPLATES: Template[] = [
   ),
 ];
 
+export { TRADE_MARKS, PATENTS, DESIGNS, COPYRIGHT } from "./cipc-ip";
+
 export const CIPC_TEMPLATES: Template[] = [
   ...REGISTER_TEMPLATES, ...NAME_TEMPLATES, ...CHANGE_TEMPLATES, ...CLOSE_CORPORATION_TEMPLATES,
   ...CONVERSION_TEMPLATES, ...WINDING_UP_TEMPLATES, ...BUSINESS_RESCUE_TEMPLATES,
+  ...CIPC_IP_TEMPLATES,
 ];

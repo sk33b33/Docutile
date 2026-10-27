@@ -486,7 +486,7 @@ import { buildCoverRows } from "@/lib/cover";
 import { FRICTION, MAX_SPEED, SNAP_SPEED, motionTo, nearestIndex, stepMotion, tileTransform, wrap, type Motion } from "@/lib/carousel/physics";
 import { GLOWS, glowForCategory, glowForSub } from "@/lib/carousel/glow";
 import { buildExplorerTree, hasSubLevel } from "@/lib/carousel/tree";
-import { CIPC_CATEGORY, CIPC_TEMPLATES, BUSINESS_RESCUE, CLOSE_CORPORATIONS, COMPANY_CHANGES, COMPANY_NAMES, CONVERSIONS, REGISTER_COMPANY, WINDING_UP } from "@/lib/templates/cipc";
+import { CIPC_CATEGORY, CIPC_TEMPLATES, COPYRIGHT, DESIGNS, PATENTS, TRADE_MARKS, BUSINESS_RESCUE, CLOSE_CORPORATIONS, COMPANY_CHANGES, COMPANY_NAMES, CONVERSIONS, REGISTER_COMPANY, WINDING_UP } from "@/lib/templates/cipc";
 import { formLabel } from "@/lib/format";
 import { sessionStatus } from "@/lib/auth/session";
 import { authEnabled, isEmailAllowed, isPublicPath, missingAuthSettings, safeCallbackPath, userStorageName } from "@/lib/auth/config";
@@ -712,15 +712,17 @@ describe("explorer levels and glow colours", () => {
 });
 
 describe("CIPC checklists", () => {
-  const SUBS = [REGISTER_COMPANY, COMPANY_NAMES, COMPANY_CHANGES, CLOSE_CORPORATIONS, CONVERSIONS, WINDING_UP, BUSINESS_RESCUE];
-  it("are a category of their own, in seven subcategories, with every service in one of them", () => {
+  const SUBS = [REGISTER_COMPANY, COMPANY_NAMES, COMPANY_CHANGES, CLOSE_CORPORATIONS, CONVERSIONS, WINDING_UP, BUSINESS_RESCUE, TRADE_MARKS, PATENTS, DESIGNS, COPYRIGHT];
+  it("are a category of their own, in eleven subcategories, with every service in one of them", () => {
     const g = groupByCategory(BUILT_IN_TEMPLATES).find((x) => x.category === CIPC_CATEGORY)!;
     expect(g.subgroups.map((x) => x.name)).toEqual(SUBS);
     expect(g.count).toBe(CIPC_TEMPLATES.length);
     expect(g.note).toContain("not legal advice");
     expect(Object.fromEntries(g.subgroups.map((x) => [x.name, x.templates.length]))).toEqual({
       [REGISTER_COMPANY]: 7, [COMPANY_NAMES]: 3, [COMPANY_CHANGES]: 11, [CLOSE_CORPORATIONS]: 2, [CONVERSIONS]: 4, [WINDING_UP]: 5, [BUSINESS_RESCUE]: 5,
+      [TRADE_MARKS]: 11, [PATENTS]: 4, [DESIGNS]: 5, [COPYRIGHT]: 1,
     });
+    expect(CIPC_TEMPLATES.length).toBe(58);
   });
   it("each name their source on cipc.co.za, a required tile, and explain a checklist that is not fully published", () => {
     for (const t of CIPC_TEMPLATES) {
@@ -743,6 +745,11 @@ describe("CIPC checklists", () => {
     expect(refs("tpl_cipc_reinstate")).toContain("CoR40.5");
     expect(refs("tpl_cipc_cc_amend")).toContain("CK2");
     expect(refs("tpl_cipc_wind_up_insolvent")).toEqual(expect.arrayContaining(["CM26", "CM100"]));
+    expect(refs("tpl_cipc_tm_register")).toContain("TM1");
+    expect(refs("tpl_cipc_tm_assign")).toContain("TM6");
+    expect(refs("tpl_cipc_patent_apply")).toEqual(expect.arrayContaining(["P1", "P3"]));
+    expect(refs("tpl_cipc_design_assign")).toContain("D7");
+    expect(refs("tpl_cipc_copyright_film")).toEqual(expect.arrayContaining(["RF1", "RF2", "RF9"]));
   });
   it("mark conditional documents optional and keep a pack unready until the listed ones are in", () => {
     const t = CIPC_TEMPLATES.find((x) => x.id === "tpl_cipc_directors")!;
@@ -753,6 +760,22 @@ describe("CIPC checklists", () => {
     expect(computeCompleteness(p.slots).ready).toBe(false);
     const filled = p.slots.map((s) => (s.required ? { ...s, files: [file(`${s.id}.pdf`)] } : s));
     expect(computeCompleteness(filled).ready).toBe(true);
+  });
+  it("treat the application forms' tick-lists as optional apart from the core item, and say so", () => {
+    for (const id of ["tpl_cipc_patent_apply", "tpl_cipc_design_apply", "tpl_cipc_copyright_film", "tpl_cipc_tm_register"]) {
+      const t = CIPC_TEMPLATES.find((x) => x.id === id)!;
+      expect(t.checklist, id).toBe("partial");
+      expect(t.checklistNote, id).toBeTruthy();
+    }
+    const patent = CIPC_TEMPLATES.find((x) => x.id === "tpl_cipc_patent_apply")!;
+    expect(patent.slots.filter((s) => s.required).map((s) => s.formRef ?? s.name)).toEqual(["P1", "Specification"]);
+  });
+  it("record what CIPC says about assignments, licences and restoration as required documents", () => {
+    const required = (id: string) => CIPC_TEMPLATES.find((x) => x.id === id)!.slots.filter((s) => s.required).map((s) => s.name);
+    expect(required("tpl_cipc_tm_assign")).toEqual(["Application to record a transaction affecting the rights in a trade mark", "Deed of assignment", "Power of attorney"]);
+    expect(required("tpl_cipc_tm_user")).toEqual(["Application for a registered user", "Licence agreement"]);
+    expect(required("tpl_cipc_tm_restore")).toContain("Affidavit giving the reasons");
+    expect(required("tpl_cipc_design_restore")).toContain("Affidavit giving the reasons");
   });
   it("send applications only to cipc.co.za addresses", () => {
     const addresses = CIPC_TEMPLATES.flatMap((t) => (t.nextSteps ?? []).flatMap((s) => s.match(/[A-Za-z0-9.-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/g) ?? []));
@@ -767,6 +790,11 @@ describe("form labels on tiles", () => {
     expect(formLabel("CoR14.1")).toBe("Form CoR14.1");
     expect(formLabel("CoR14.1 Annexure A")).toBe("Form CoR14.1 Annexure A");
     expect(formLabel("CK2A")).toBe("Form CK2A");
+    expect(formLabel("TM6")).toBe("Form TM6");
+    expect(formLabel("P1")).toBe("Form P1");
+    expect(formLabel("D18")).toBe("Form D18");
+    expect(formLabel("RF9")).toBe("Form RF9");
+    expect(formLabel("TM2 (caveat)")).toBe("Form TM2 (caveat)");
     expect(formLabel("MBU 09(A)")).toBe("Form MBU 09(A)");
     expect(formLabel("Form 06 · J480")).toBe("Form 06 · J480");
     expect(formLabel("Annexure B")).toBe("Annexure B");

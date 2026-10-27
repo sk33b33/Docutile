@@ -39,10 +39,10 @@ export function templateDateIso(label: string): string | null {
 }
 
 /**
- * CIPC form numbers (CoR14.1, CoR15.1A, CK2A, CM26, CR1, JM12 ...). Kept apart from the DOJ pattern so that DOJ pages
+ * CIPC form numbers (CoR14.1, CoR15.1A, CK2A, CM26, CR1, JM12, and the IP forms TM1, P1, D1, RF1 ...). Kept apart from the DOJ pattern so that DOJ pages
  * are never read with it.
  */
-const CIPC_FORM_TOKEN = /\b(?:CoR\s?\d{1,3}(?:\.\s?\d)?\s?[A-E]?|CK\s?\d[A]?|CM\s?\d{2,3}[A]?|CR\s?\d{1,2}|JM\s?\d{1,3})(?![A-Za-z0-9])/gi;
+const CIPC_FORM_TOKEN = /\b(?:CoR\s?\d{1,3}(?:\.\s?\d)?\s?[A-E]?|CK\s?\d[A]?|CM\s?\d{2,3}[A]?|CR\s?\d{1,2}|JM\s?\d{1,3}|TM\s?\d{1,2}|RF\s?\d{1,2}|P\s?\d{1,2}|D\s?\d{1,2})(?![A-Za-z0-9])/gi;
 
 export function extractCipcFormTokens(text: string): string[] {
   return [...new Set((text.match(CIPC_FORM_TOKEN) ?? []).map(normalizeToken))].sort();
@@ -51,5 +51,24 @@ export function extractCipcFormTokens(text: string): string[] {
 /** The right extractor for a source: CIPC pages use CIPC form numbers, everything else uses the DOJ ones. */
 export function formTokensFor(url: string, text: string): string[] {
   return /(^|\.)cipc\.co\.za\//i.test(url) ? extractCipcFormTokens(text) : extractFormTokens(text);
+}
+
+/**
+ * The forms list on a CIPC forms page: the text from its "FORM CODE" heading to the sidebar that follows. Every CIPC
+ * page also carries popups that name forms (service standards), so tokens from the whole page prove nothing.
+ * Returns null when the heading is missing, which means the page layout changed.
+ */
+export function cipcFormsSection(pageText: string): string | null {
+  const start = pageText.search(/FORM CODE/i);
+  if (start < 0) return null;
+  const rest = pageText.slice(start);
+  const end = rest.search(/Related links|USEFUL RESOURCES/i);
+  return end > 0 ? rest.slice(0, end) : rest;
+}
+
+/** The main content of a CIPC page: everything before its sidebar ("Related links" / "Useful resources"). */
+export function cipcMainText(pageText: string): string {
+  const end = pageText.search(/Related links|USEFUL RESOURCES/i);
+  return end > 0 ? pageText.slice(0, end) : pageText;
 }
 

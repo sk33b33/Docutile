@@ -42,6 +42,6 @@ export const RECHECK_AFTER_DAYS = 90;
  * already say what they are ("Form 06 · J480", "Annexure B", "Affidavit") are left alone.
  */
 export function formLabel(ref: string): string {
-  return /^(?:J|JM|MBU|CoR|CK|CM|CR)\s?\d/i.test(ref) ? `Form ${ref}` : ref;
+  return /^(?:J|JM|MBU|CoR|CK|CM|CR|TM|RF|P|D)\s?\d/i.test(ref) ? `Form ${ref}` : ref;
 }
 
