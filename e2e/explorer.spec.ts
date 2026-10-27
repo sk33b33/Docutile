@@ -202,3 +202,120 @@ test("the ring fits a phone screen without sideways scrolling", async ({ page })
   const box = (await stage(page).boundingBox())!;
   expect(box.width).toBeLessThanOrEqual(360);
 });
+
+/** The centre tile's scroll area, and a point over the middle of it. */
+async function centreScroller(page: Page) {
+  const scroller = stage(page).locator(".ring-scroll").filter({ has: page.locator("button[tabindex='0']") });
+  await expect(scroller).toHaveCount(1);
+  const box = (await scroller.boundingBox())!;
+  return { scroller, x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
+const scrollTopOf = (loc: ReturnType<Page["locator"]>) => loc.evaluate((e) => (e as HTMLElement).scrollTop);
+const pageScroll = (page: Page) => page.evaluate(() => window.scrollY);
+
+/** DOJ, then Estates: its service names are long, so on a phone nearly every tile has more text than fits. */
+async function toLongTiles(page: Page) {
+  await page.goto("/");
+  await settled(page);
+  await open(page, /Category South African DOJ/);
+  await open(page, /Estates \d+ service/, false);
+  await settled(page);
+}
+
+test("long text in a tile scrolls with the mouse wheel while hovering, and the page stays put", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 740 });
+  await toLongTiles(page);
+  const { scroller, x, y } = await centreScroller(page);
+  const tile = scroller.locator("xpath=..");
+  await expect.poll(() => scroller.evaluate((e) => e.scrollHeight > e.clientHeight + 4)).toBe(true);
+  await expect(tile.getByText("Scroll for more")).toBeVisible(); // the cue that there is more below
+
+  const before = await pageScroll(page);
+  await page.mouse.move(x, y);
+  await page.mouse.wheel(0, 60);
+  await expect.poll(() => scrollTopOf(scroller)).toBeGreaterThan(0);
+  expect(await pageScroll(page)).toBe(before); // the wheel scrolled the tile, not the page
+
+  // All the way down: the last lines are reachable, the cue goes, and the page still does not move.
+  for (let i = 0; i < 6; i++) await page.mouse.wheel(0, 200);
+  await expect(tile.getByText("Scroll for more")).toHaveCount(0);
+  expect(await scroller.evaluate((e) => e.scrollHeight - e.scrollTop - e.clientHeight)).toBeLessThan(4);
+  await page.mouse.wheel(0, 300);
+  await page.waitForTimeout(150);
+  expect(await pageScroll(page)).toBe(before);
+
+  // Back up: the cue returns.
+  await page.mouse.wheel(0, -2000);
+  await expect.poll(() => scrollTopOf(scroller)).toBe(0);
+  await expect(tile.getByText("Scroll for more")).toBeVisible();
+});
+
+test("a tile whose text fits does not trap the wheel: the page scrolls as normal", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 480 });
+  await page.goto("/");
+  await settled(page);
+  const { scroller, x, y } = await centreScroller(page);
+  expect(await scroller.evaluate((e) => e.scrollHeight > e.clientHeight + 4)).toBe(false);
+  await page.mouse.move(x, y);
+  await page.mouse.wheel(0, 200);
+  await expect.poll(() => pageScroll(page)).toBeGreaterThan(0);
+});
+
+test("long text scrolls with a finger, while a sideways swipe still spins the ring", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 360, height: 740 }, hasTouch: true, isMobile: true });
+  const page = await context.newPage();
+  await skipSplash(page);
+  await toLongTiles(page);
+  const { scroller, x, y } = await centreScroller(page);
+  await expect.poll(() => scroller.evaluate((e) => e.scrollHeight > e.clientHeight + 4)).toBe(true);
+
+  // Real touch events, as a finger makes them: down, a series of moves, up. (The browser turns them into scrolling.)
+  const cdp = await context.newCDPSession(page);
+  const drag = async (dx: number, dy: number, steps = 12) => {
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+    for (let i = 1; i <= steps; i++) {
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + (dx * i) / steps, y: y + (dy * i) / steps }] });
+      await page.waitForTimeout(16);
+    }
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  };
+
+  // Finger up the tile: the text moves, the page does not.
+  const before = await pageScroll(page);
+  await drag(0, -70);
+  await expect.poll(() => scrollTopOf(scroller)).toBeGreaterThan(20);
+  expect(await pageScroll(page)).toBe(before);
+
+  // Finger sideways: the ring spins (tiles pass through the centre) instead of scrolling anything.
+  const passed = new Set<string | null>([await centre(page)]);
+  await drag(-220, 0);
+  for (let i = 0; i < 80; i++) {
+    passed.add(await centre(page));
+    if (i > 3 && (await stage(page).getAttribute("data-settled")) === "true") break;
+    await page.waitForTimeout(30);
+  }
+  await settled(page);
+  expect(passed.size, "tiles that passed through the centre").toBeGreaterThan(1);
+  await context.close();
+});
+
+test("a tile's long text can be scrolled with the arrow keys once it has focus", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 740 });
+  await toLongTiles(page);
+  const { scroller } = await centreScroller(page);
+  await scroller.locator("button").focus();
+  await page.keyboard.press("ArrowDown");
+  await expect.poll(() => scrollTopOf(scroller)).toBeGreaterThan(0);
+});
+
+test("scrollable tiles have no accessibility violations, on the ring and in the list", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 740 });
+  await toLongTiles(page);
+  const check = async () => {
+    const { violations } = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa", "best-practice"]).analyze();
+    expect(violations.map((v) => `${v.id}: ${v.nodes[0]?.target.join(" ")}`)).toEqual([]);
+  };
+  await check();
+  await explorer(page).getByRole("button", { name: "List", exact: true }).click();
+  await check();
+});

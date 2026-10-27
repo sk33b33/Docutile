@@ -146,23 +146,39 @@ html[data-splash="done"] .splash { display: none; }
 
 /* Service explorer: translucent neon tiles on a ring (see components/explorer). */
 @layer components {
-  .ring-tile {
-    display: flex; flex-direction: column; justify-content: space-between; gap: 0.35rem;
-    width: 100%; height: 100%; padding: 0.8rem; border-radius: 1rem; text-align: left; color: #f8fafc;
-    /* Tinted glass over a dark, mostly-opaque base, so a tile passing behind another never shows its text through. */
+  /* The frame: tinted glass over a dark, mostly-opaque base, so a tile passing behind another never shows its text through. */
+  .ring-tile-wrap {
+    position: relative; display: block; width: 100%; height: 100%; overflow: hidden; border-radius: 1rem;
     background: linear-gradient(150deg, rgb(var(--glow) / 0.24), rgb(var(--glow) / 0.07) 60%, rgb(255 255 255 / 0.03)), rgb(8 12 30 / 0.88);
     border: 1px solid rgb(var(--glow) / 0.6);
     box-shadow: 0 0 16px rgb(var(--glow) / 0.32), inset 0 0 22px rgb(var(--glow) / 0.1);
-    overflow: hidden; cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
   }
-  .ring-tile[data-active="true"] {
+  .ring-tile-wrap[data-active="true"] {
     backdrop-filter: var(--blur-card); -webkit-backdrop-filter: var(--blur-card);
     box-shadow: 0 0 34px rgb(var(--glow) / 0.65), inset 0 0 26px rgb(var(--glow) / 0.16);
   }
-  .ring-tile:hover { border-color: rgb(var(--glow) / 0.95); }
-  .ring-tile:focus-visible { outline: 2px solid #67e8f9; outline-offset: 3px; }
+  .ring-tile-wrap:hover { border-color: rgb(var(--glow) / 0.95); }
+  /* Long text scrolls inside the tile instead of being cut off: mouse wheel, finger or arrow keys. */
+  .ring-scroll {
+    display: block; width: 100%; height: 100%; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
+    scrollbar-width: thin; scrollbar-color: rgb(var(--glow) / 0.7) transparent;
+  }
+  .ring-scroll::-webkit-scrollbar { width: 6px; }
+  .ring-scroll::-webkit-scrollbar-thumb { background: rgb(var(--glow) / 0.7); border-radius: 3px; }
+  .ring-tile {
+    display: flex; flex-direction: column; justify-content: space-between; gap: 0.35rem;
+    width: 100%; min-height: 100%; padding: 0.8rem; text-align: left; color: #f8fafc; background: transparent; border: 0;
+    cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+  }
+  .ring-tile > span { flex: none; }
+  .ring-tile:focus-visible { outline: 2px solid #67e8f9; outline-offset: -4px; border-radius: 1rem; }
   .ring-kicker { font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; color: rgb(var(--glow)); }
-  .ring-title { display: -webkit-box; font-weight: 600; line-height: 1.2; overflow: hidden; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+  .ring-title { font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
+  .ring-more {
+    position: absolute; left: 0; right: 0; bottom: 0; padding: 1.1rem 0 0.25rem;
+    text-align: center; font-size: 0.65rem; letter-spacing: 0.04em; color: #e2e8f0; pointer-events: none;
+    background: linear-gradient(to bottom, transparent, rgb(8 12 30 / 0.95) 70%);
+  }
   .ring-sub { font-size: 0.75rem; color: #cbd5e1; }
   .ring-stage { touch-action: pan-y; cursor: grab; }
   .ring-stage[data-dragging="true"] { cursor: grabbing; }
@@ -175,6 +191,6 @@ html[data-splash="done"] .splash { display: none; }
   .ring-bob, .ring-expand { animation: none; }
 }
 @media (prefers-reduced-transparency: reduce), (forced-colors: active) {
-  .ring-tile, .ring-tile[data-active="true"] { background: #0f172a; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .ring-tile-wrap, .ring-tile-wrap[data-active="true"] { background: #0f172a; backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
 @media print { .ring-stage, .ring-controls { display: none !important; } }
