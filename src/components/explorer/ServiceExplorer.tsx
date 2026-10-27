@@ -13,6 +13,7 @@ import { Dialog } from "@/components/ui/Dialog";
 import { useToast } from "@/components/ui/Toast";
 import { glowForCategory, glowForSub } from "@/lib/carousel/glow";
 import { buildExplorerTree, hasSubLevel, type ExplorerCategory, type ExplorerSub } from "@/lib/carousel/tree";
+import { formLabel } from "@/lib/format";
 import { createPack, type PackMetaInput } from "@/lib/packs";
 import { CHECKLIST_LABEL } from "@/lib/templates/categories";
 import type { Template } from "@/types";
@@ -111,7 +112,7 @@ export function ServiceExplorer() {
     }
     if (level === 3 && template) {
       return template.slots.map((s) => ({
-        id: s.id, title: s.name, kicker: s.formRef ? `Form ${s.formRef}` : "Document", subtitle: s.required ? "Required" : "Optional",
+        id: s.id, title: s.name, kicker: s.formRef ? formLabel(s.formRef) : "Document", subtitle: s.required ? "Required" : "Optional",
         glow: s.required ? subGlow : "148 163 184",
       }));
     }

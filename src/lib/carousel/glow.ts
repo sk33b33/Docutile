@@ -15,6 +15,7 @@ const CATEGORY_GLOW: Record<string, string> = {
   "South African DOJ": GLOWS.violet,
   "Master of the High Court: other services": GLOWS.magenta,
   "South African Courts": GLOWS.lime,
+  CIPC: GLOWS.amber,
 };
 
 /** A fixed colour for each known category, so it never changes between visits; others take the next free colour. */

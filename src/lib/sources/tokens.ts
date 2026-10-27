@@ -37,3 +37,19 @@ export function templateDateIso(label: string): string | null {
   const m = label.match(/(\d{1,2})\s+([A-Za-z]{3})[a-z]*\s+(\d{4})/);
   return m && MONTHS[m[2].toLowerCase()] ? `${m[3]}-${MONTHS[m[2].toLowerCase()]}-${m[1].padStart(2, "0")}` : null;
 }
+
+/**
+ * CIPC form numbers (CoR14.1, CoR15.1A, CK2A, CM26, CR1, JM12 ...). Kept apart from the DOJ pattern so that DOJ pages
+ * are never read with it.
+ */
+const CIPC_FORM_TOKEN = /\b(?:CoR\s?\d{1,3}(?:\.\s?\d)?\s?[A-E]?|CK\s?\d[A]?|CM\s?\d{2,3}[A]?|CR\s?\d{1,2}|JM\s?\d{1,3})(?![A-Za-z0-9])/gi;
+
+export function extractCipcFormTokens(text: string): string[] {
+  return [...new Set((text.match(CIPC_FORM_TOKEN) ?? []).map(normalizeToken))].sort();
+}
+
+/** The right extractor for a source: CIPC pages use CIPC form numbers, everything else uses the DOJ ones. */
+export function formTokensFor(url: string, text: string): string[] {
+  return /(^|\.)cipc\.co\.za\//i.test(url) ? extractCipcFormTokens(text) : extractFormTokens(text);
+}
+

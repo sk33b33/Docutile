@@ -486,6 +486,8 @@ import { buildCoverRows } from "@/lib/cover";
 import { FRICTION, MAX_SPEED, SNAP_SPEED, motionTo, nearestIndex, stepMotion, tileTransform, wrap, type Motion } from "@/lib/carousel/physics";
 import { GLOWS, glowForCategory, glowForSub } from "@/lib/carousel/glow";
 import { buildExplorerTree, hasSubLevel } from "@/lib/carousel/tree";
+import { CIPC_CATEGORY, CIPC_TEMPLATES, BUSINESS_RESCUE, CLOSE_CORPORATIONS, COMPANY_CHANGES, COMPANY_NAMES, CONVERSIONS, REGISTER_COMPANY, WINDING_UP } from "@/lib/templates/cipc";
+import { formLabel } from "@/lib/format";
 import { sessionStatus } from "@/lib/auth/session";
 import { authEnabled, isEmailAllowed, isPublicPath, missingAuthSettings, safeCallbackPath, userStorageName } from "@/lib/auth/config";
 
@@ -608,7 +610,8 @@ describe("printable cover sheet rows", () => {
 describe("next steps from the source", () => {
   it("are on exactly the services whose source describes the process, and copy into a new pack", () => {
     const withSteps = BUILT_IN_TEMPLATES.filter((t) => t.nextSteps?.length).map((t) => t.id).sort();
-    expect(withSteps).toEqual(["tpl_doj_estate_over_250k", "tpl_doj_estate_under_250k", "tpl_doj_maintenance", "tpl_doj_protection_order"]);
+    const dojWithSteps = ["tpl_doj_estate_over_250k", "tpl_doj_estate_under_250k", "tpl_doj_maintenance", "tpl_doj_protection_order"];
+    expect(withSteps).toEqual([...dojWithSteps, ...CIPC_TEMPLATES.map((t) => t.id)].sort());
     const t = BUILT_IN_TEMPLATES.find((x) => x.id === "tpl_doj_protection_order")!;
     const p = createPack({ name: "n", organisationName: "o", submissionType: "", referenceNumber: "", dueDate: "", notes: "" }, t);
     expect(p.templateNextSteps).toEqual(t.nextSteps);
@@ -687,7 +690,7 @@ describe("ring carousel motion", () => {
 describe("explorer levels and glow colours", () => {
   const tree = buildExplorerTree(BUILT_IN_TEMPLATES);
   it("groups services into categories and subcategories", () => {
-    expect(tree.map((c) => c.title)).toEqual(["General business", "South African DOJ", "Master of the High Court: other services", "South African Courts"]);
+    expect(tree.map((c) => c.title)).toEqual(["General business", "South African DOJ", "Master of the High Court: other services", "South African Courts", "CIPC"]);
     const doj = tree.find((c) => c.title === "South African DOJ")!;
     expect(doj.subs.map((s) => s.title)).toEqual(["Estates", "Trusts"]);
     expect(hasSubLevel(doj)).toBe(true);
@@ -705,5 +708,68 @@ describe("explorer levels and glow colours", () => {
     expect(parent).toBe(GLOWS.violet);
     const subs = [0, 1, 2].map((i) => glowForSub(parent, i));
     expect(new Set([parent, ...subs]).size).toBe(4);
+  });
+});
+
+describe("CIPC checklists", () => {
+  const SUBS = [REGISTER_COMPANY, COMPANY_NAMES, COMPANY_CHANGES, CLOSE_CORPORATIONS, CONVERSIONS, WINDING_UP, BUSINESS_RESCUE];
+  it("are a category of their own, in seven subcategories, with every service in one of them", () => {
+    const g = groupByCategory(BUILT_IN_TEMPLATES).find((x) => x.category === CIPC_CATEGORY)!;
+    expect(g.subgroups.map((x) => x.name)).toEqual(SUBS);
+    expect(g.count).toBe(CIPC_TEMPLATES.length);
+    expect(g.note).toContain("not legal advice");
+    expect(Object.fromEntries(g.subgroups.map((x) => [x.name, x.templates.length]))).toEqual({
+      [REGISTER_COMPANY]: 7, [COMPANY_NAMES]: 3, [COMPANY_CHANGES]: 11, [CLOSE_CORPORATIONS]: 2, [CONVERSIONS]: 4, [WINDING_UP]: 5, [BUSINESS_RESCUE]: 5,
+    });
+  });
+  it("each name their source on cipc.co.za, a required tile, and explain a checklist that is not fully published", () => {
+    for (const t of CIPC_TEMPLATES) {
+      expect(t.category, t.id).toBe(CIPC_CATEGORY);
+      expect(t.source?.url, t.id).toMatch(/^https:\/\/www\.cipc\.co\.za\//);
+      expect(t.slots.some((s) => s.required), t.id).toBe(true);
+      expect(t.checklistNote, t.id).toBeTruthy();
+      expect(t.nextSteps?.length, t.id).toBeGreaterThan(1);
+      expect(t.builtIn).toBe(true);
+    }
+  });
+  it("accept only scans that can be merged into the pack PDF", () => {
+    for (const t of CIPC_TEMPLATES) for (const s of t.slots) expect(s.acceptedTypes.every((ext) => canMerge(`x.${ext}`)), `${t.id}/${s.id}`).toBe(true);
+  });
+  it("name the official form on the tile where there is one", () => {
+    const find = (id: string) => CIPC_TEMPLATES.find((t) => t.id === id)!;
+    const refs = (id: string) => find(id).slots.map((s) => s.formRef).filter(Boolean);
+    expect(refs("tpl_cipc_private_short")).toEqual(expect.arrayContaining(["CoR14.1", "CoR15.1A", "CoR14.1 Annexure A"]));
+    expect(refs("tpl_cipc_directors")).toContain("CoR39");
+    expect(refs("tpl_cipc_reinstate")).toContain("CoR40.5");
+    expect(refs("tpl_cipc_cc_amend")).toContain("CK2");
+    expect(refs("tpl_cipc_wind_up_insolvent")).toEqual(expect.arrayContaining(["CM26", "CM100"]));
+  });
+  it("mark conditional documents optional and keep a pack unready until the listed ones are in", () => {
+    const t = CIPC_TEMPLATES.find((x) => x.id === "tpl_cipc_directors")!;
+    const p = createPack({ name: "n", organisationName: "o", submissionType: "", referenceNumber: "", dueDate: "", notes: "" }, t);
+    const required = p.slots.filter((s) => s.required).map((s) => s.name);
+    expect(required).toEqual(["Notice of change concerning a director", "Certified ID copy of applicant", "Certified ID copies of resigning, appointed and active directors"]);
+    expect(p.slots.find((s) => s.name === "Proof of death")?.required).toBe(false);
+    expect(computeCompleteness(p.slots).ready).toBe(false);
+    const filled = p.slots.map((s) => (s.required ? { ...s, files: [file(`${s.id}.pdf`)] } : s));
+    expect(computeCompleteness(filled).ready).toBe(true);
+  });
+  it("send applications only to cipc.co.za addresses", () => {
+    const addresses = CIPC_TEMPLATES.flatMap((t) => (t.nextSteps ?? []).flatMap((s) => s.match(/[A-Za-z0-9.-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/g) ?? []));
+    expect(addresses.length).toBeGreaterThan(20);
+    for (const a of addresses) expect(a.toLowerCase(), a).toMatch(/@cipc\.co\.za$/);
+  });
+});
+
+describe("form labels on tiles", () => {
+  it("add the word Form to official form numbers and leave self-describing references alone", () => {
+    expect(formLabel("J294")).toBe("Form J294");
+    expect(formLabel("CoR14.1")).toBe("Form CoR14.1");
+    expect(formLabel("CoR14.1 Annexure A")).toBe("Form CoR14.1 Annexure A");
+    expect(formLabel("CK2A")).toBe("Form CK2A");
+    expect(formLabel("MBU 09(A)")).toBe("Form MBU 09(A)");
+    expect(formLabel("Form 06 · J480")).toBe("Form 06 · J480");
+    expect(formLabel("Annexure B")).toBe("Annexure B");
+    expect(formLabel("Affidavit")).toBe("Affidavit");
   });
 });

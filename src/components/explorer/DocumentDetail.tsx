@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { ArrowLeft, Rocket } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { formatBytes } from "@/lib/format";
+import { formLabel, formatBytes } from "@/lib/format";
 import type { Template, TemplateSlot } from "@/types";
 
 /** A document tile opened out to full size: it stays put (no spinning) until you go back. */
@@ -25,7 +25,7 @@ export function DocumentDetail({
       <h3 className="mt-1 text-xl font-semibold text-slate-50">{slot.name}</h3>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <Badge tone={slot.required ? "required" : "neutral"}>{slot.required ? "Required" : "Optional"}</Badge>
-        {slot.formRef && <Badge tone="info">Form {slot.formRef}</Badge>}
+        {slot.formRef && <Badge tone="info">{formLabel(slot.formRef)}</Badge>}
         {slot.allowMultiple && <Badge tone="neutral">Several files allowed</Badge>}
       </div>
       <p className="mt-3 text-sm text-slate-100">{slot.description || "No description."}</p>

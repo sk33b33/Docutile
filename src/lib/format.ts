@@ -36,3 +36,12 @@ export function daysSince(iso: string, now: Date = new Date()): number {
 
 /** Checklists transcribed from official pages are re-checked after this many days. */
 export const RECHECK_AFTER_DAYS = 90;
+
+/**
+ * How a form reference reads on a tile: "J294" and "CoR14.1" become "Form J294" and "Form CoR14.1"; references that
+ * already say what they are ("Form 06 · J480", "Annexure B", "Affidavit") are left alone.
+ */
+export function formLabel(ref: string): string {
+  return /^(?:J|JM|MBU|CoR|CK|CM|CR)\s?\d/i.test(ref) ? `Form ${ref}` : ref;
+}
+

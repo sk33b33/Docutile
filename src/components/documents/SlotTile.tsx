@@ -6,7 +6,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Crop, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Download, Eye, GripVertical, Pencil, Replace, Trash2, Upload, X } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { formatBytes, formatDate, formatTypeList, getExtension } from "@/lib/format";
+import { formatBytes, formatDate, formatTypeList, getExtension, formLabel } from "@/lib/format";
 import { PREVIEWABLE } from "@/lib/download";
 import type { AttachedFile, DocumentSlot } from "@/types";
 
@@ -31,11 +31,6 @@ interface Props extends SlotTileHandlers {
   index: number;
   total: number;
   error?: string;
-}
-
-/** "J294" -> "Form J294"; labels that already say "Form 2" are left alone. */
-function formLabel(ref: string) {
-  return /^J\w*\d+$/i.test(ref) ? `Form ${ref}` : ref;
 }
 
 function hasFiles(e: React.DragEvent) {

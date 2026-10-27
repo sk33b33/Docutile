@@ -1,4 +1,5 @@
 import { DEFAULT_ACCEPTED_TYPES, DEFAULT_MAX_FILE_SIZE_BYTES } from "../constants";
+import { CIPC_TEMPLATES } from "./cipc";
 import { DOJ_TEMPLATES } from "./doj";
 import type { Template, TemplateSlot } from "@/types";
 
@@ -31,6 +32,7 @@ function tpl(id: string, name: string, area: string, description: string, slots:
 }
 
 export { DOJ_CATEGORY } from "./doj";
+export { CIPC_CATEGORY } from "./cipc";
 
 export const BUILT_IN_TEMPLATES: Template[] = [
   tpl("tpl_supplier", "Supplier onboarding", "Procurement", "Standard documents for onboarding a new supplier.", [
@@ -64,6 +66,7 @@ export const BUILT_IN_TEMPLATES: Template[] = [
     slot("gen_attach", "Attachments", "Supporting attachments.", false, { allowMultiple: true }),
   ]),
   ...DOJ_TEMPLATES,
+  ...CIPC_TEMPLATES,
 ];
 
 export function cloneTemplateSlots(slots: TemplateSlot[]): TemplateSlot[] {

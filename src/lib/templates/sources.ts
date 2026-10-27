@@ -1,6 +1,9 @@
 import type { TemplateSource } from "@/types";
 import { RETRIEVED } from "./helpers";
 
+/** Date the CIPC pages and PDFs were read. */
+const CIPC_RETRIEVED = "2026-10-27";
+
 const master = "DOJ&CD Master of the High Court";
 
 export const SOURCES = {
@@ -16,4 +19,8 @@ export const SOURCES = {
   maintenanceForms: { label: "DOJ&CD Maintenance forms", url: "https://www.justice.gov.za/forms/form_mnt.htm", retrievedOn: RETRIEVED },
   durban: { label: "Master of the High Court, Durban: checklist for reporting a deceased estate", url: "https://www.justice.gov.za/master/m_forms/Deceased-Estate-Checklist-DBN-eForm.pdf", retrievedOn: RETRIEVED },
   j401: { label: "DOJ&CD form J401: trust registration and amendments", url: "https://www.justice.gov.za/master/m_forms/J401_trust-registration-amendment-eform.pdf", retrievedOn: RETRIEVED },
+  cipcDocs: { label: "CIPC: contact details, forms and supporting documents required when transacting with CIPC (2021 edition)", url: "https://www.cipc.co.za/wp-content/uploads/2024/02/Email-addresses-for-applications-and-supporting-docs-required-v5-2021.pdf", retrievedOn: CIPC_RETRIEVED },
+  cipcCompanyForms: { label: "CIPC: company forms and fees", url: "https://www.cipc.co.za/?page_id=3804", retrievedOn: CIPC_RETRIEVED },
+  cipcCloseCorpForms: { label: "CIPC: close corporation forms and fees", url: "https://www.cipc.co.za/?page_id=4068", retrievedOn: CIPC_RETRIEVED },
+  cipcEmails: { label: "CIPC: e-mail addresses for submitting documents (2026)", url: "https://www.cipc.co.za/wp-content/uploads/2026/03/Email-addresses-for-applications-v2.0.pdf", retrievedOn: CIPC_RETRIEVED },
 } satisfies Record<string, TemplateSource>;

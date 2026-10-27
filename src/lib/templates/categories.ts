@@ -6,6 +6,8 @@ export const CATEGORY_NOTES: Record<string, string> = {
     "Department of Justice and Constitutional Development: services of the Master of the High Court. Checklists are transcribed from justice.gov.za; this is a preparation aid, not legal advice.",
   "Master of the High Court: other services":
     "The Master's other divisions: the Guardian's Fund, curators and tutors, and insolvent estates. Checklists are transcribed from justice.gov.za; where the DOJ publishes only a form, the service says so. This is a preparation aid, not legal advice.",
+  CIPC:
+    "The Companies and Intellectual Property Commission: registering and changing companies and close corporations, names, conversions, winding up and business rescue. Checklists are transcribed from cipc.co.za; this is a preparation aid, not legal advice. Intellectual property filings and annual returns are not included yet.",
   "South African Courts":
     "Services applied for at magistrate's courts. Checklists are transcribed from justice.gov.za; this is a preparation aid, not legal advice.",
 };
