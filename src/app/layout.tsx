@@ -7,6 +7,7 @@ import { ToastProvider } from "@/components/ui/Toast";
 import { Shell } from "@/components/layout/Shell";
 import { ServiceWorkerRegister } from "@/components/layout/ServiceWorker";
 import { authEnabled, userStorageName } from "@/lib/auth/config";
+import { ThemeWatcher } from "@/components/layout/ThemeWatcher";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
 export const metadata: Metadata = {
@@ -31,6 +32,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         {/* Avoid a flash of the splash on reload within a session that already entered. */}
         <script dangerouslySetInnerHTML={{ __html: `try{if(sessionStorage.getItem("docutile:entered")==="1")document.documentElement.dataset.splash="done"}catch(e){}` + THEME_INIT_SCRIPT }} />
+        <ThemeWatcher />
         <ToastProvider>
           {signInOn && !user ? (
             // Signed out: only the sign-in screen is reachable (the proxy redirects everything else here).

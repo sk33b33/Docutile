@@ -488,6 +488,7 @@ import { GLOWS, glowForCategory, glowForSub } from "@/lib/carousel/glow";
 import { buildExplorerTree, hasSubLevel } from "@/lib/carousel/tree";
 import { CIPC_CATEGORY, CIPC_TEMPLATES, COPYRIGHT, DESIGNS, PATENTS, TRADE_MARKS, BUSINESS_RESCUE, CLOSE_CORPORATIONS, COMPANY_CHANGES, COMPANY_NAMES, CONVERSIONS, REGISTER_COMPANY, WINDING_UP } from "@/lib/templates/cipc";
 import { formLabel } from "@/lib/format";
+import { THEME_COLOR, THEME_INIT_SCRIPT, THEME_KEY, isThemeChoice, resolveTheme } from "@/lib/theme";
 import { sessionStatus } from "@/lib/auth/session";
 import { authEnabled, isEmailAllowed, isPublicPath, missingAuthSettings, safeCallbackPath, userStorageName } from "@/lib/auth/config";
 
@@ -835,5 +836,44 @@ describe("document library sorting", () => {
     expect(rows.map((r) => r.file.displayName)).toEqual(before);
     expect(LIBRARY_SORTS.map((o) => o.value).sort()).toEqual(["name-asc", "name-desc", "newest", "oldest", "pack-asc", "pack-desc", "size-asc", "size-desc", "type"]);
     for (const o of LIBRARY_SORTS) expect(sortLibraryRows(rows, o.value).length).toBe(rows.length);
+  });
+});
+
+describe("theme choice", () => {
+  it("resolves a fixed choice to itself and Device to the device's setting", () => {
+    expect(resolveTheme("dark", true)).toBe("dark");
+    expect(resolveTheme("light", false)).toBe("light");
+    expect(resolveTheme("system", true)).toBe("light");
+    expect(resolveTheme("system", false)).toBe("dark");
+  });
+  it("only accepts the three known choices", () => {
+    for (const ok of ["dark", "light", "system"]) expect(isThemeChoice(ok)).toBe(true);
+    for (const bad of ["", "auto", "Dark", null, undefined, 1]) expect(isThemeChoice(bad)).toBe(false);
+  });
+
+  /** Runs the script that sets the theme before first paint against a stand-in for the browser. */
+  function runInitScript(saved: string | null, deviceIsLight: boolean) {
+    const attrs: Record<string, string> = {};
+    const metas = [{ v: "", setAttribute(_: string, c: string) { this.v = c; } }, { v: "", setAttribute(_: string, c: string) { this.v = c; } }];
+    const document = { documentElement: { dataset: attrs }, querySelectorAll: () => metas };
+    const localStorage = { getItem: (k: string) => (k === THEME_KEY ? saved : null) };
+    const window = { matchMedia: () => ({ matches: deviceIsLight }) };
+    new Function("localStorage", "window", "document", THEME_INIT_SCRIPT)(localStorage, window, document);
+    return { attrs, bar: metas.map((m) => m.v) };
+  }
+  it("the pre-paint script applies a saved choice, following the device for Device", () => {
+    expect(runInitScript("light", false)).toEqual({ attrs: { themeChoice: "light", theme: "light" }, bar: [THEME_COLOR.light, THEME_COLOR.light] });
+    expect(runInitScript("dark", true).attrs).toEqual({ themeChoice: "dark", theme: "dark" });
+    expect(runInitScript("system", true)).toEqual({ attrs: { themeChoice: "system", theme: "light" }, bar: [THEME_COLOR.light, THEME_COLOR.light] });
+    expect(runInitScript("system", false)).toEqual({ attrs: { themeChoice: "system", theme: "dark" }, bar: [THEME_COLOR.dark, THEME_COLOR.dark] });
+  });
+  it("the pre-paint script leaves the default (dark) alone when nothing, or nonsense, is saved", () => {
+    expect(runInitScript(null, true).attrs).toEqual({});
+    expect(runInitScript("auto", true).attrs).toEqual({});
+  });
+  it("the pre-paint script agrees with resolveTheme", () => {
+    for (const choice of ["dark", "light", "system"] as const) {
+      for (const light of [true, false]) expect(runInitScript(choice, light).attrs.theme).toBe(resolveTheme(choice, light));
+    }
   });
 });

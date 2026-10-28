@@ -153,3 +153,69 @@ test("the document library sorts by date, file name, pack name, size and type", 
   expect(await order()).toEqual(["z-big.pdf", "m.pdf"]);
   await expect(page.getByText("2 of 3 documents match.")).toBeVisible();
 });
+
+test("the Device theme follows the device's light or dark setting, live, and is remembered", async ({ page }) => {
+  const group = page.getByRole("group", { name: "Colour theme" });
+  const theme = () => page.locator("html").getAttribute("data-theme");
+  const luminance = () => page.evaluate(() => {
+    const [r, g, b] = getComputedStyle(document.body).backgroundColor.match(/\d+/g)!.map(Number);
+    return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  });
+
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto("/");
+  await expect(group.getByRole("button", { name: "Dark" })).toHaveAttribute("aria-pressed", "true"); // the default ignores the device
+  expect(await theme()).not.toBe("light");
+
+  await group.getByRole("button", { name: "Device" }).click();
+  await expect(group.getByRole("button", { name: "Device" })).toHaveAttribute("aria-pressed", "true");
+  await expect(group.getByRole("button", { name: "Dark", exact: true })).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  expect(await luminance()).toBeGreaterThan(0.8);
+  await expect(group.getByText("(following your device, now light)")).toBeAttached();
+
+  // The device changes while the page is open: the page follows at once.
+  await page.emulateMedia({ colorScheme: "dark" });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  expect(await luminance()).toBeLessThan(0.2);
+  await expect(group.getByText("(following your device, now dark)")).toBeAttached();
+  await page.emulateMedia({ colorScheme: "light" });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+  // Remembered, and applied before the page finishes loading, to whatever the device says at that moment.
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.goto("/library", { waitUntil: "domcontentloaded" });
+  expect(await page.evaluate(() => [document.documentElement.dataset.themeChoice, document.documentElement.dataset.theme])).toEqual(["system", "dark"]);
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  expect(await theme()).toBe("light");
+  await expect(group.getByRole("button", { name: "Device" })).toHaveAttribute("aria-pressed", "true");
+  await page.emulateMedia({ colorScheme: "dark" });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+
+  // A fixed choice stops following the device.
+  await group.getByRole("button", { name: "Light", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.waitForTimeout(200);
+  expect(await theme()).toBe("light");
+  await page.emulateMedia({ colorScheme: "light" });
+  await group.getByRole("button", { name: "Dark", exact: true }).click();
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.waitForTimeout(200);
+  expect(await theme()).toBe("dark");
+});
+
+test("the Device theme passes the accessibility audit in both device settings", async ({ browser }) => {
+  for (const colorScheme of ["light", "dark"] as const) {
+    const context = await browser.newContext({ colorScheme });
+    const page = await context.newPage();
+    await skipSplash(page);
+    await page.addInitScript(() => localStorage.setItem("docutile:theme", "system"));
+    await page.goto("/");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", colorScheme);
+    const { violations } = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa", "best-practice"]).analyze();
+    expect(violations.map((v) => `${v.id}: ${v.nodes[0]?.target.join(" ")}`), colorScheme).toEqual([]);
+    await context.close();
+  }
+});
