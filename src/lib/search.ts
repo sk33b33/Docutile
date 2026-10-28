@@ -1,3 +1,4 @@
+import { getExtension } from "./format";
 import type { AttachedFile, DocumentSlot, Pack } from "@/types";
 
 /** Lower-case, accent-free text for matching. */
@@ -45,3 +46,40 @@ export function searchLibrary(rows: LibraryRow[], query: string): LibraryRow[] {
     return t.every((w) => hay.includes(w));
   });
 }
+
+export type LibrarySort = "newest" | "oldest" | "name-asc" | "name-desc" | "pack-asc" | "pack-desc" | "size-desc" | "size-asc" | "type";
+
+export const LIBRARY_SORTS: { value: LibrarySort; label: string }[] = [
+  { value: "newest", label: "Date added: newest first" },
+  { value: "oldest", label: "Date added: oldest first" },
+  { value: "name-asc", label: "File name: A to Z" },
+  { value: "name-desc", label: "File name: Z to A" },
+  { value: "pack-asc", label: "Pack name: A to Z" },
+  { value: "pack-desc", label: "Pack name: Z to A" },
+  { value: "size-desc", label: "Size: largest first" },
+  { value: "size-asc", label: "Size: smallest first" },
+  { value: "type", label: "File type" },
+];
+
+/** Natural, accent- and case-insensitive ordering, so "doc2" comes before "doc10". */
+const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+
+/** A sorted copy. Equal rows fall back to file name, then pack name, so the order is always the same. */
+export function sortLibraryRows(rows: LibraryRow[], sort: LibrarySort): LibraryRow[] {
+  const byName = (a: LibraryRow, b: LibraryRow) => collator.compare(a.file.displayName, b.file.displayName);
+  const byPack = (a: LibraryRow, b: LibraryRow) => collator.compare(a.pack.name, b.pack.name);
+  const date = (r: LibraryRow) => Date.parse(r.file.uploadedAt) || 0;
+  const primary: Record<LibrarySort, (a: LibraryRow, b: LibraryRow) => number> = {
+    newest: (a, b) => date(b) - date(a),
+    oldest: (a, b) => date(a) - date(b),
+    "name-asc": byName,
+    "name-desc": (a, b) => byName(b, a),
+    "pack-asc": byPack,
+    "pack-desc": (a, b) => byPack(b, a),
+    "size-desc": (a, b) => b.file.sizeBytes - a.file.sizeBytes,
+    "size-asc": (a, b) => a.file.sizeBytes - b.file.sizeBytes,
+    type: (a, b) => collator.compare(getExtension(a.file.originalName), getExtension(b.file.originalName)),
+  };
+  return [...rows].sort((a, b) => primary[sort](a, b) || byName(a, b) || byPack(a, b));
+}
+

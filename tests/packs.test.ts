@@ -307,7 +307,7 @@ describe("pack backup", () => {
 });
 
 import { dueStatus, sortPacks } from "@/lib/due";
-import { libraryRows, normalize, searchLibrary, searchPacks } from "@/lib/search";
+import { LIBRARY_SORTS, libraryRows, normalize, searchLibrary, searchPacks, sortLibraryRows, type LibrarySort } from "@/lib/search";
 
 describe("dueStatus", () => {
   const now = new Date(2026, 9, 23, 15, 30); // 23 Oct 2026, afternoon
@@ -799,5 +799,41 @@ describe("form labels on tiles", () => {
     expect(formLabel("Form 06 · J480")).toBe("Form 06 · J480");
     expect(formLabel("Annexure B")).toBe("Annexure B");
     expect(formLabel("Affidavit")).toBe("Affidavit");
+  });
+});
+
+describe("document library sorting", () => {
+  const f = (name: string, size: number, at: string) => file(name, { sizeBytes: size, uploadedAt: at, displayName: name });
+  const make = (id: string, name: string, files: ReturnType<typeof f>[]) => ({ ...pack([slot("s", true, files)]), id, name });
+  const rows = libraryRows([
+    make("p1", "Zebra pack", [f("b.pdf", 300, "2026-03-02T10:00:00Z"), f("doc10.png", 50, "2026-03-05T10:00:00Z")]),
+    make("p2", "alpha pack", [f("doc2.pdf", 900, "2026-03-01T10:00:00Z"), f("A.jpg", 300, "2026-03-04T10:00:00Z")]),
+  ]);
+  const names = (sort: LibrarySort) => sortLibraryRows(rows, sort).map((r) => r.file.displayName);
+  it("orders by date added, both ways", () => {
+    expect(names("newest")).toEqual(["doc10.png", "A.jpg", "b.pdf", "doc2.pdf"]);
+    expect(names("oldest")).toEqual(["doc2.pdf", "b.pdf", "A.jpg", "doc10.png"]);
+  });
+  it("orders file names naturally and ignoring case", () => {
+    expect(names("name-asc")).toEqual(["A.jpg", "b.pdf", "doc2.pdf", "doc10.png"]);
+    expect(names("name-desc")).toEqual(["doc10.png", "doc2.pdf", "b.pdf", "A.jpg"]);
+  });
+  it("orders by pack name, then file name within a pack", () => {
+    expect(names("pack-asc")).toEqual(["A.jpg", "doc2.pdf", "b.pdf", "doc10.png"]);
+    expect(names("pack-desc")).toEqual(["b.pdf", "doc10.png", "A.jpg", "doc2.pdf"]);
+  });
+  it("orders by size, breaking ties by file name", () => {
+    expect(names("size-desc")).toEqual(["doc2.pdf", "A.jpg", "b.pdf", "doc10.png"]);
+    expect(names("size-asc")).toEqual(["doc10.png", "A.jpg", "b.pdf", "doc2.pdf"]);
+  });
+  it("groups by file type", () => {
+    expect(names("type")).toEqual(["A.jpg", "b.pdf", "doc2.pdf", "doc10.png"]);
+  });
+  it("returns a sorted copy and offers every sort", () => {
+    const before = rows.map((r) => r.file.displayName);
+    sortLibraryRows(rows, "size-desc");
+    expect(rows.map((r) => r.file.displayName)).toEqual(before);
+    expect(LIBRARY_SORTS.map((o) => o.value).sort()).toEqual(["name-asc", "name-desc", "newest", "oldest", "pack-asc", "pack-desc", "size-asc", "size-desc", "type"]);
+    for (const o of LIBRARY_SORTS) expect(sortLibraryRows(rows, o.value).length).toBe(rows.length);
   });
 });

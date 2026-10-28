@@ -51,7 +51,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <button
             type="submit"
             disabled={!on}
-            className="flex h-11 w-full items-center justify-center gap-3 rounded-md bg-white px-4 text-sm font-medium text-slate-900 shadow-[0_0_20px_rgba(34,211,238,0.25)] transition hover:shadow-[0_0_30px_rgba(139,92,246,0.5)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+            className="flex h-11 w-full items-center justify-center gap-3 rounded-md bg-[#ffffff] px-4 text-sm font-medium text-[#0f172a] shadow-[0_0_20px_rgba(34,211,238,0.25)] transition hover:shadow-[0_0_30px_rgba(139,92,246,0.5)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
           >
             <GoogleMark /> Continue with Google
           </button>

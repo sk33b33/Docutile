@@ -13,7 +13,11 @@ async function audit(page: Page, label: string) {
   expect(summary, `axe violations on ${label}`).toEqual([]);
 }
 
-test("axe: all main pages and states", async ({ page }) => {
+/** Starts the page in the given theme, the way a saved choice would. */
+const useTheme = (page: Page, theme: "dark" | "light") => page.addInitScript((t) => localStorage.setItem("docutile:theme", t), theme);
+
+for (const theme of ["dark", "light"] as const) test(`axe: all main pages and states (${theme} theme)`, async ({ page }) => {
+  await useTheme(page, theme);
   await page.goto("/");
   await expect(page.getByText("No packs yet")).toBeVisible();
   await audit(page, "dashboard (empty)");
@@ -60,7 +64,8 @@ test("axe: all main pages and states", async ({ page }) => {
   await audit(page, "template editor");
 });
 
-test("axe: mobile menu open", async ({ page }) => {
+for (const theme of ["dark", "light"] as const) test(`axe: mobile menu open (${theme} theme)`, async ({ page }) => {
+  await useTheme(page, theme);
   await page.setViewportSize({ width: 390, height: 800 });
   await page.goto("/");
   await page.getByRole("button", { name: "Open menu" }).click();

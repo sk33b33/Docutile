@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { inputClass } from "@/components/ui/Field";
-import { libraryRows, searchLibrary } from "@/lib/search";
+import { LIBRARY_SORTS, libraryRows, searchLibrary, sortLibraryRows, type LibrarySort } from "@/lib/search";
 import { Download } from "lucide-react";
 import { useApp } from "@/components/providers/AppProvider";
 import { Button } from "@/components/ui/Button";
@@ -18,8 +18,9 @@ export default function LibraryPage() {
   const { packs, repo } = useApp();
   const { notify } = useToast();
   const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<LibrarySort>("newest");
   const all = useMemo(() => libraryRows(packs), [packs]);
-  const rows = useMemo(() => searchLibrary(all, query), [all, query]);
+  const rows = useMemo(() => sortLibraryRows(searchLibrary(all, query), sort), [all, query, sort]);
 
   async function save(f: AttachedFile) {
     try {
@@ -33,11 +34,21 @@ export default function LibraryPage() {
     <>
       <PageHeader title="Document library" description="Every file attached to a pack in this browser. This is a read-only index, not shared storage." />
       {all.length > 0 && (
-        <div className="mb-4 max-w-md">
-          <label htmlFor="lib-search" className="mb-1 block text-sm font-medium text-slate-100">Search documents</label>
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden />
-            <input id="lib-search" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="File name, document, pack or client" className={`${inputClass} pl-9`} autoComplete="off" />
+        <div className="mb-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="min-w-0 max-w-md flex-1 basis-60">
+              <label htmlFor="lib-search" className="mb-1 block text-sm font-medium text-slate-100">Search documents</label>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden />
+                <input id="lib-search" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="File name, document, pack or client" className={`${inputClass} pl-9`} autoComplete="off" />
+              </div>
+            </div>
+            <div>
+              <label htmlFor="lib-sort" className="mb-1 block text-sm font-medium text-slate-100">Sort by</label>
+              <select id="lib-sort" value={sort} onChange={(e) => setSort(e.target.value as LibrarySort)} className={inputClass}>
+                {LIBRARY_SORTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
           </div>
           <p role="status" className="mt-1 text-xs text-slate-300">{query ? `${rows.length} of ${all.length} documents match.` : `${all.length} document${all.length === 1 ? "" : "s"}.`}</p>
         </div>

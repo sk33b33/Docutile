@@ -316,7 +316,7 @@ test("waiting note: a missing document can be marked as waiting but still blocks
   await expect(tile(page, "Cover letter").getByText(/Applied at Home Affairs/)).toBeVisible();
   await page.goto("/");
   await expect(page.getByText("1 document waiting")).toBeVisible();
-  await page.getByRole("link", { name: "Q1 onboarding" }).click();
+  await page.getByRole("link", { name: "Q1 onboarding", exact: true }).click();
   await fileInput(page, "Cover letter").setInputFiles(await pdfFile("letter.pdf", 1));
   await expect(tile(page, "Cover letter").getByText("letter.pdf").first()).toBeVisible();
   await expect(tile(page, "Cover letter").getByText(/Applied at Home Affairs/)).toHaveCount(0);

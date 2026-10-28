@@ -5,7 +5,7 @@ import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BackupPasswordRequired } from "@/lib/backup-crypto";
 import { ImportPasswordDialog } from "@/components/packs/BackupDialogs";
-import { CalendarClock, Copy, Search, Trash2, Upload } from "lucide-react";
+import { CalendarClock, Copy, FolderOpen, Pencil, Search, Trash2, Upload } from "lucide-react";
 import { useApp } from "@/components/providers/AppProvider";
 import { Badge } from "@/components/ui/Badge";
 import { Button, LinkButton } from "@/components/ui/Button";
@@ -14,6 +14,7 @@ import { inputClass } from "@/components/ui/Field";
 import { EmptyState, PageHeader, ProgressBar } from "@/components/ui/States";
 import { useToast } from "@/components/ui/Toast";
 import { ServiceExplorer } from "@/components/explorer/ServiceExplorer";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { BackupReminder } from "@/components/packs/BackupReminder";
 import { PackStatusBadge } from "@/components/packs/PackStatusBadge";
 import { dueStatus, sortPacks, type PackSort } from "@/lib/due";
@@ -87,6 +88,7 @@ export default function DashboardPage() {
         description="Recent packs saved in this browser."
         actions={
           <>
+            <ThemeToggle />
             <Button onClick={() => importRef.current?.click()}><Upload className="h-4 w-4" aria-hidden /> Import backup</Button>
             <LinkButton href="/packs/new" variant="primary">Create new pack</LinkButton>
           </>
@@ -137,6 +139,10 @@ export default function DashboardPage() {
                         <h2 className="truncate text-base font-semibold">
                           <Link href={`/packs/${p.id}`} className="text-cyan-200 hover:text-cyan-100 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">{p.name}</Link>
                         </h2>
+                        <p className="mt-0.5 text-sm text-slate-100">
+                          <span className="text-slate-300">Applying for: </span>
+                          <span className="font-medium" data-testid="applying-for">{p.templateName}</span>
+                        </p>
                         <p className="truncate text-sm text-slate-300">{p.organisationName}{p.referenceNumber && ` · Ref ${p.referenceNumber}`}</p>
                       </div>
                       <PackStatusBadge status={p.status} />
@@ -160,7 +166,10 @@ export default function DashboardPage() {
                     )}
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
                       <span>Updated {formatDateTime(p.updatedAt)}</span>
-                      <span className="flex gap-1">
+                      <span className="flex flex-wrap gap-1">
+                        {p.status === "draft"
+                          ? <LinkButton href={`/packs/${p.id}`} size="sm" variant="primary" aria-label={`Continue editing ${p.name}`}><Pencil className="h-4 w-4" aria-hidden /> Continue editing</LinkButton>
+                          : <LinkButton href={`/packs/${p.id}`} size="sm" aria-label={`Open ${p.name}`}><FolderOpen className="h-4 w-4" aria-hidden /> Open</LinkButton>}
                         <Button size="sm" variant="ghost" onClick={() => setToDuplicate(p)} aria-label={`Duplicate pack ${p.name}`}><Copy className="h-4 w-4" aria-hidden /> Duplicate</Button>
                         <Button size="sm" variant="ghost" onClick={() => setToDelete(p)} aria-label={`Delete pack ${p.name}`}><Trash2 className="h-4 w-4" aria-hidden /> Delete</Button>
                       </span>
