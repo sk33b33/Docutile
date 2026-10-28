@@ -489,6 +489,7 @@ import { buildExplorerTree, hasSubLevel } from "@/lib/carousel/tree";
 import { CIPC_CATEGORY, CIPC_TEMPLATES, COPYRIGHT, DESIGNS, PATENTS, TRADE_MARKS, BUSINESS_RESCUE, CLOSE_CORPORATIONS, COMPANY_CHANGES, COMPANY_NAMES, CONVERSIONS, REGISTER_COMPANY, WINDING_UP } from "@/lib/templates/cipc";
 import { formLabel } from "@/lib/format";
 import { THEME_COLOR, THEME_INIT_SCRIPT, THEME_KEY, isThemeChoice, resolveTheme } from "@/lib/theme";
+import { PORTALS, portalCategories, portalsFor } from "@/lib/portals";
 import { sessionStatus } from "@/lib/auth/session";
 import { authEnabled, isEmailAllowed, isPublicPath, missingAuthSettings, safeCallbackPath, userStorageName } from "@/lib/auth/config";
 
@@ -874,6 +875,28 @@ describe("theme choice", () => {
   it("the pre-paint script agrees with resolveTheme", () => {
     for (const choice of ["dark", "light", "system"] as const) {
       for (const light of [true, false]) expect(runInitScript(choice, light).attrs.theme).toBe(resolveTheme(choice, light));
+    }
+  });
+});
+
+describe("official portals", () => {
+  const categories = new Set(BUILT_IN_TEMPLATES.map((t) => t.category));
+  it("sit under real categories, and only categories that have an official portal have any", () => {
+    for (const c of portalCategories()) expect(categories.has(c), c).toBe(true);
+    expect(portalCategories()).toEqual(["South African DOJ", "Master of the High Court: other services", "South African Courts", "CIPC"]);
+    expect(portalsFor("General business")).toEqual([]); // nothing official to link for everyday business packs
+    expect(portalsFor("CIPC").map((p) => p.name)).toEqual(["BizPortal", "CIPC e-Services", "CIPC IPOnline", "CIPC enquiries"]);
+  });
+  it("are https links to government sites only, each with a unique id and a page that lists it", () => {
+    const hosts = /(^|\.)(justice\.gov\.za|cipc\.co\.za|bizportal\.gov\.za)$/;
+    expect(new Set(PORTALS.map((p) => p.id)).size).toBe(PORTALS.length);
+    for (const p of PORTALS) {
+      const u = new URL(p.url);
+      expect(u.protocol, p.id).toBe("https:");
+      expect(u.hostname, p.id).toMatch(hosts);
+      expect(new URL(p.listedOn).protocol, p.id).toBe("https:");
+      expect(p.what.length, p.id).toBeGreaterThan(10);
+      expect(u.username + u.password, `${p.id} must not carry credentials`).toBe("");
     }
   });
 });

@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
+import { PORTALS } from "@/lib/portals";
 import { CIPC_TEMPLATES } from "@/lib/templates/cipc";
 import { DOJ_TEMPLATES } from "@/lib/templates/doj";
 import { SOURCES } from "@/lib/templates/sources";
@@ -29,16 +30,23 @@ const hasPdftotext = (() => {
 
 interface Fetched { url: string; ok: boolean; skipped?: string; error?: string; text: string; tokens: string[] }
 
+/** One download, tried up to three times: official sites sometimes reset a connection. Status 0 means no answer at all. */
 function curl(url: string, out?: string): { status: number; body: string } {
   const args = ["-sSL", "--max-time", "90", "-A", UA, "-w", "\n%{http_code}"];
   if (out) args.push("-o", out);
-  try {
-    const res = execFileSync("curl", [...args, url], { maxBuffer: 64 * 1024 * 1024, encoding: "utf8" });
-    const nl = res.lastIndexOf("\n");
-    return { status: Number(res.slice(nl + 1)), body: res.slice(0, nl) };
-  } catch (e) {
-    return { status: 0, body: String((e as Error).message) };
+  let last = { status: 0, body: "" };
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = execFileSync("curl", [...args, url], { maxBuffer: 64 * 1024 * 1024, encoding: "utf8" });
+      const nl = res.lastIndexOf("\n");
+      last = { status: Number(res.slice(nl + 1)), body: res.slice(0, nl) };
+      if (last.status !== 0) return last;
+    } catch (e) {
+      last = { status: 0, body: String((e as Error).message) };
+    }
+    execFileSync("sleep", [String(2 * (attempt + 1))]);
   }
+  return last;
 }
 
 function fetchSource(url: string): Fetched {
@@ -131,3 +139,26 @@ describe("official DOJ and CIPC sources", () => {
     expect(changes, "form numbers on official pages changed: review the checklists, then run `npm run check:sources:update`").toEqual([]);
   });
 });
+
+describe("official portals", () => {
+  const status = (url: string) => curl(url).status;
+
+  it("still answer, and are still listed on the official page that names them", () => {
+    const unreachable: string[] = [];
+    const notListed: string[] = [];
+    const unverified: string[] = [];
+    const listedBodies = new Map<string, string>();
+    for (const p of PORTALS) {
+      const code = status(p.url);
+      if (code === 0) unverified.push(p.url); // no answer here (for example a certificate this machine cannot check): not proof it is down
+      else if (code >= 400) unreachable.push(`${p.url}: HTTP ${code}`);
+      if (!listedBodies.has(p.listedOn)) listedBodies.set(p.listedOn, curl(p.listedOn).body);
+      const host = new URL(p.url).hostname;
+      if (!listedBodies.get(p.listedOn)!.includes(host)) notListed.push(`${p.id}: ${p.listedOn} no longer mentions ${host}`);
+    }
+    if (unverified.length) console.warn(`Portals not verified from this machine (no answer): ${unverified.join(", ")}`);
+    expect(unreachable, "portals returning an error").toEqual([]);
+    expect(notListed, "portals the official pages no longer mention").toEqual([]);
+  });
+});
+

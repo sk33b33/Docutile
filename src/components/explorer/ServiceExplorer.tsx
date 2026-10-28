@@ -145,7 +145,7 @@ export function ServiceExplorer() {
   if (slot) crumbs.push({ label: slot.name, go: () => undefined });
 
   return (
-    <section aria-labelledby="explorer-title" className="glass mb-6 rounded-xl p-4">
+    <section aria-labelledby="explorer-title" className="glass rounded-xl p-4">
       <div className="flex flex-wrap items-center gap-2">
         <h2 id="explorer-title" className="text-base font-semibold">Start a pack</h2>
         <div role="group" aria-label="View" className="ml-auto flex gap-1">

@@ -14,6 +14,7 @@ import { inputClass } from "@/components/ui/Field";
 import { EmptyState, PageHeader, ProgressBar } from "@/components/ui/States";
 import { useToast } from "@/components/ui/Toast";
 import { ServiceExplorer } from "@/components/explorer/ServiceExplorer";
+import { PortalsPanel } from "@/components/layout/PortalsPanel";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { BackupReminder } from "@/components/packs/BackupReminder";
 import { PackStatusBadge } from "@/components/packs/PackStatusBadge";
@@ -95,8 +96,14 @@ export default function DashboardPage() {
         }
       />
       <BackupReminder />
-      <ServiceExplorer />
       <input ref={importRef} type="file" accept=".docutile" className="sr-only" tabIndex={-1} aria-hidden onChange={onImport} />
+      {/* Explorer and packs on the left; on wide screens the official portals sit beside them, otherwise between them. */}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1fr)_18rem] xl:grid-rows-[auto_minmax(0,1fr)] xl:items-start">
+        <ServiceExplorer />
+        <div className="xl:col-start-2 xl:row-span-2 xl:row-start-1">
+          <div className="xl:sticky xl:top-6"><PortalsPanel /></div>
+        </div>
+        <div className="min-w-0">
       {packs.length === 0 ? (
         <EmptyState
           title="No packs yet"
@@ -181,6 +188,8 @@ export default function DashboardPage() {
           )}
         </>
       )}
+        </div>
+      </div>
       <ImportPasswordDialog
         file={protectedFile}
         onClose={() => setProtectedFile(null)}

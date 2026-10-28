@@ -3,55 +3,24 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { Activity, FolderOpen, LayoutDashboard, LayoutTemplate, Menu, PlusCircle, Settings, X } from "lucide-react";
+import { Menu, PanelLeftOpen } from "lucide-react";
 import { useApp } from "@/components/providers/AppProvider";
 import { ErrorBanner, Loading } from "@/components/ui/States";
 import { LogoMark } from "./Logo";
+import { MenuDrawer } from "./MenuDrawer";
+import { NavList } from "./NavList";
 import { Splash, useSplashEntered } from "./Splash";
 import { OfflineBanner } from "./ServiceWorker";
 import { UserMenu } from "./UserMenu";
 
-const NAV = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/packs/new", label: "New Pack", icon: PlusCircle },
-  { href: "/templates", label: "Templates", icon: LayoutTemplate },
-  { href: "/library", label: "Document Library", icon: FolderOpen },
-  { href: "/activity", label: "Activity", icon: Activity },
-  { href: "/settings", label: "Settings", icon: Settings },
-];
-
-function isActive(pathname: string, href: string) {
-  return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
-}
-
-function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
-  return (
-    <ul className="space-y-1">
-      {NAV.map(({ href, label, icon: Icon }) => {
-        const active = isActive(pathname, href);
-        return (
-          <li key={href}>
-            <Link
-              href={href}
-              onClick={onNavigate}
-              aria-current={active ? "page" : undefined}
-              className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 ${
-                active ? "bg-cyan-400/10 text-white shadow-[inset_0_0_0_1px_rgba(34,211,238,0.5),0_0_20px_rgba(34,211,238,0.25)]" : "text-slate-300 hover:bg-white/10 hover:text-white hover:shadow-[0_0_14px_rgba(139,92,246,0.35)]"
-              }`}
-            >
-              <Icon className="h-4 w-4" aria-hidden /> {label}
-            </Link>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
 export function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { loadState, loadError } = useApp();
-  const [menuOpen, setMenuOpen] = useState(false);
+  // The pop-out menu closes by itself when the page changes (a link, or the browser Back button).
+  const [menuOpenOn, setMenuOpenOn] = useState<string | null>(null);
+  const menuOpen = menuOpenOn === pathname;
+  const openMenu = () => setMenuOpenOn(pathname);
+  const closeMenu = () => setMenuOpenOn(null);
   const entered = useSplashEntered();
 
   // Dropping a file outside a tile would make the browser navigate to it; block that globally.
@@ -83,7 +52,19 @@ export function Shell({ children }: { children: ReactNode }) {
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-slate-950 focus:p-2 focus:text-white">Skip to content</a>
 
       <aside aria-label="Sidebar" className="no-print hidden w-64 shrink-0 flex-col border-r border-white/10 bg-slate-950/55 p-4 backdrop-blur-2xl md:flex">
-        <div className="mb-6 px-2">{brand}</div>
+        <div className="mb-6 flex items-center justify-between gap-2 px-2">
+          {brand}
+          <button
+            type="button"
+            onClick={openMenu}
+            aria-haspopup="dialog"
+            aria-label="Open all options"
+            title="All options"
+            className="rounded p-2 text-slate-200 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300"
+          >
+            <PanelLeftOpen className="h-5 w-5" aria-hidden />
+          </button>
+        </div>
         <nav aria-label="Primary"><NavList pathname={pathname} /></nav>
         <div className="mt-auto">
           <UserMenu />
@@ -95,22 +76,18 @@ export function Shell({ children }: { children: ReactNode }) {
         <div className="flex items-center justify-between">
           {brand}
           <button
-            onClick={() => setMenuOpen((o) => !o)}
-            aria-expanded={menuOpen}
-            aria-controls="mobile-nav"
-            aria-label={menuOpen ? "Close menu" : "Open menu"}
-            className="rounded p-2 text-white hover:bg-white/10"
+            type="button"
+            onClick={openMenu}
+            aria-haspopup="dialog"
+            aria-label="Open menu"
+            className="rounded p-2 text-white hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300"
           >
-            {menuOpen ? <X className="h-5 w-5" aria-hidden /> : <Menu className="h-5 w-5" aria-hidden />}
+            <Menu className="h-5 w-5" aria-hidden />
           </button>
         </div>
-        {menuOpen && (
-          <nav id="mobile-nav" aria-label="Primary" className="mt-3">
-            <NavList pathname={pathname} onNavigate={() => setMenuOpen(false)} />
-            <UserMenu />
-          </nav>
-        )}
       </header>
+
+      <MenuDrawer open={menuOpen} pathname={pathname} onClose={closeMenu} />
 
       <main id="main" tabIndex={-1} className="min-w-0 flex-1 p-4 outline-none md:p-8">
         <div className="mx-auto max-w-6xl">

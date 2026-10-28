@@ -309,3 +309,16 @@ html[data-splash="done"] .splash { display: none; }
   .ring-tile-wrap, .ring-tile-wrap[data-active="true"] { background: var(--solid); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
 @media print { .ring-stage, .ring-controls { display: none !important; } }
+
+/* Pop-out menu: a panel that slides in from the left over a dimmed page. */
+dialog.menu-drawer {
+  margin: 0; padding: 0; border: 0; position: fixed; inset: 0 auto 0 0;
+  width: min(23rem, 90vw); height: 100dvh; max-height: 100dvh; color: var(--text);
+  background: var(--glass-strong); backdrop-filter: var(--blur-strong); -webkit-backdrop-filter: var(--blur-strong);
+  border-right: 1px solid rgb(var(--glow-cyan) / 0.35); border-radius: 0 1rem 1rem 0;
+  box-shadow: 0 0 40px rgb(var(--glow-cyan) / 0.18), 0 0 80px rgb(var(--glow-violet) / 0.12);
+}
+dialog.menu-drawer[open] { animation: drawer-in 0.22s ease-out; }
+@keyframes drawer-in { from { transform: translateX(-100%); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) { dialog.menu-drawer[open] { animation: none; } }
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) { dialog.menu-drawer { background: var(--solid); backdrop-filter: none; -webkit-backdrop-filter: none; } }
