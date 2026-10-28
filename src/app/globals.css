@@ -295,7 +295,8 @@ html[data-splash="done"] .splash { display: none; }
     background: linear-gradient(to bottom, transparent, var(--tile-base) 70%);
   }
   .ring-sub { font-size: 0.75rem; color: var(--tile-sub); }
-  .ring-stage { touch-action: pan-y; cursor: grab; }
+  /* A stacking context of its own, so the tiles' z-index never lifts them above a menu, panel or dialog. */
+  .ring-stage { touch-action: pan-y; cursor: grab; isolation: isolate; }
   .ring-stage[data-dragging="true"] { cursor: grabbing; }
   .ring-bob { animation: ring-bob 2.6s ease-in-out infinite; }
 }

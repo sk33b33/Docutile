@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Menu, PanelLeftOpen } from "lucide-react";
 import { useApp } from "@/components/providers/AppProvider";
 import { ErrorBanner, Loading } from "@/components/ui/States";
+import { Docubuddy } from "@/components/docubuddy/Docubuddy";
 import { LogoMark } from "./Logo";
 import { MenuDrawer } from "./MenuDrawer";
 import { NavList } from "./NavList";
@@ -88,8 +89,9 @@ export function Shell({ children }: { children: ReactNode }) {
       </header>
 
       <MenuDrawer open={menuOpen} pathname={pathname} onClose={closeMenu} />
+      <Docubuddy />
 
-      <main id="main" tabIndex={-1} className="min-w-0 flex-1 p-4 outline-none md:p-8">
+      <main id="main" tabIndex={-1} className="min-w-0 flex-1 p-4 pb-24 outline-none md:p-8 md:pb-24">
         <div className="mx-auto max-w-6xl">
           <OfflineBanner />
           {loadState === "loading" && <Loading label="Opening local storage…" />}
