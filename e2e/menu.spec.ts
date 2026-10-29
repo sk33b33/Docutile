@@ -132,3 +132,31 @@ test("the panel and the pop-out menu pass the accessibility audit in both themes
     await page.keyboard.press("Escape");
   }
 });
+
+test("the pop-out menu has a single scrollbar: the panel does not scroll, its content does", async ({ page }) => {
+  for (const [width, height] of [[1280, 600], [390, 600]] as const) {
+    await page.setViewportSize({ width, height });
+    await page.goto("/");
+    await page.getByRole("button", { name: /Open (all options|menu)/ }).click();
+    await expect(drawer(page)).toBeVisible();
+    const state = () => page.evaluate(() => {
+      const panel = document.querySelector("dialog.menu-drawer") as HTMLElement;
+      const content = panel.firstElementChild as HTMLElement;
+      return { panelOverflow: getComputedStyle(panel).overflowY, panelScrolls: panel.scrollHeight > panel.clientHeight && getComputedStyle(panel).overflowY !== "hidden", contentOverflow: getComputedStyle(content).overflowY, contentOverflows: content.scrollHeight > content.clientHeight, contentTop: content.scrollTop, panelTop: panel.scrollTop };
+    });
+    const before = await state();
+    expect(before.panelOverflow).toBe("hidden"); // one scroller only
+    expect(before.panelScrolls).toBe(false);
+    expect(before.contentOverflow).toBe("auto");
+    expect(before.contentOverflows, `${width}x${height}: the menu is taller than the screen`).toBe(true);
+
+    // The wheel scrolls the content, and everything (the portals, the theme switch, the account) can be reached.
+    await page.mouse.move(width < 500 ? 150 : 180, height / 2);
+    await page.mouse.wheel(0, 3000);
+    await expect.poll(async () => (await state()).contentTop).toBeGreaterThan(0);
+    expect((await state()).panelTop).toBe(0);
+    await expect(drawer(page).getByText("Local-first. Files stay in this browser.")).toBeInViewport();
+    await expect(drawer(page).getByRole("group", { name: "Colour theme" })).toBeAttached();
+    await page.keyboard.press("Escape");
+  }
+});
