@@ -15,11 +15,12 @@ const EXPECTED: [string, string][] = [
   ["CIPC IPOnline", "https://iponline.cipc.co.za/Account/Login.aspx"],
 ];
 
-test("the dashboard has a side panel of official portals, grouped by main category, that open in a new tab", async ({ page }) => {
+test("the dashboard has a side panel of official portals, in a list grouped by main category, that open in a new tab", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   await expect(panel(page).getByRole("heading", { name: "Official portals" })).toBeVisible();
   await expect(panel(page)).toContainText("Docutile never sees your password");
+  await panel(page).getByRole("button", { name: "List", exact: true }).click(); // the grouped list, rather than the carousel
   for (const category of ["South African DOJ", "Master of the High Court: other services", "South African Courts", "CIPC"]) {
     await expect(panel(page).getByRole("heading", { name: category })).toBeVisible();
   }
@@ -158,5 +159,109 @@ test("the pop-out menu has a single scrollbar: the panel does not scroll, its co
     await expect(drawer(page).getByText("Local-first. Files stay in this browser.")).toBeInViewport();
     await expect(drawer(page).getByRole("group", { name: "Colour theme" })).toBeAttached();
     await page.keyboard.press("Escape");
+  }
+});
+
+
+const ring = (p: Page) => panel(p).locator(".ring-stage");
+const bars = (p: Page) => p.context();
+
+test("the portals are a carousel by default: one tile per official site, each a link that opens in a new tab", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(ring(page)).toHaveAttribute("data-settled", "true"); // no intro spin here
+  await expect(panel(page).getByRole("button", { name: "Carousel", exact: true })).toHaveAttribute("aria-pressed", "true");
+  const tiles = ring(page).locator("a.ring-tile");
+  await expect(tiles).toHaveCount(7); // seven sites; DOJ Online is one tile that serves three categories
+  const hrefs = await tiles.evaluateAll((els) => els.map((e) => e.getAttribute("href")));
+  expect(new Set(hrefs).size).toBe(7);
+  for (const [, href] of EXPECTED) expect(hrefs).toContain(href);
+  for (const el of await tiles.all()) {
+    await expect(el).toHaveAttribute("target", "_blank");
+    await expect(el).toHaveAttribute("rel", /noopener/);
+    await expect(el).toHaveAttribute("rel", /noreferrer/);
+    await expect(el).toHaveAttribute("draggable", "false");
+    await expect(el).toContainText("opens the official site in a new tab");
+  }
+  const dojOnline = ring(page).locator("a.ring-tile[href='https://dojonline.justice.gov.za']");
+  await expect(dojOnline).toContainText("DOJ · Master · Courts");
+
+  // Turning it changes the centre tile, and the Open button follows.
+  const centre = () => ring(page).getAttribute("data-active");
+  const first = await centre();
+  await panel(page).getByRole("button", { name: "Next" }).click();
+  await expect(ring(page)).toHaveAttribute("data-settled", "true");
+  expect(await centre()).not.toBe(first);
+  const open = panel(page).getByRole("link", { name: /^Open / });
+  await expect(open).toHaveAttribute("target", "_blank");
+  expect(await open.getAttribute("href")).toBe(await ring(page).locator("a.ring-tile[tabindex='0']").getAttribute("href"));
+});
+
+test("clicking a portal opens the official site in a new tab that cannot reach back into Docutile; dragging the ring opens nothing", async ({ page, context }) => {
+  await context.route(/^https:\/\/(dojonline|trustonline|icmsweb|eservices|iponline|enquiries)\..*|^https:\/\/www\.bizportal\.gov\.za\/.*/, (route) => route.fulfill({ status: 200, contentType: "text/html", body: "<title>Official site</title>" }));
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(ring(page)).toHaveAttribute("data-settled", "true");
+
+  // A drag or flick across the tiles must not count as a click on one.
+  let opened = 0;
+  context.on("page", () => { opened++; });
+  const b = (await ring(page).boundingBox())!;
+  await page.mouse.move(b.x + b.width * 0.8, b.y + b.height / 2);
+  await page.mouse.down();
+  for (let i = 1; i <= 8; i++) { await page.mouse.move(b.x + b.width * 0.8 - i * 25, b.y + b.height / 2, { steps: 2 }); await page.waitForTimeout(10); }
+  await page.mouse.up();
+  await expect(ring(page)).toHaveAttribute("data-settled", "true", { timeout: 10_000 });
+  await page.waitForTimeout(300);
+  expect(opened).toBe(0);
+
+  // A real click on the centre tile opens the site in a new tab with no link back (noopener).
+  const popup = context.waitForEvent("page");
+  await ring(page).locator("a.ring-tile[tabindex='0']").click({ force: true }); // it hovers up and down, so it is never "still"
+  const site = await popup;
+  await site.waitForLoadState();
+  expect(site.url()).toMatch(/^https:\/\/(dojonline|trustonline|icmsweb|eservices|iponline|enquiries|www\.bizportal)\./);
+  expect(await site.evaluate(() => window.opener)).toBeNull();
+  await site.close();
+  await expect(page).toHaveURL(/localhost/); // Docutile itself stayed where it was
+});
+
+test("the portals view is remembered, and reduced motion starts on the list", async ({ page, browser }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await panel(page).getByRole("button", { name: "List", exact: true }).click();
+  await expect(ring(page)).toHaveCount(0);
+  await expect(panel(page).getByRole("heading", { name: "South African DOJ" })).toBeVisible();
+  await page.reload();
+  await expect(panel(page).getByRole("button", { name: "List", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await panel(page).getByRole("button", { name: "Carousel", exact: true }).click();
+  await expect(ring(page)).toHaveCount(1);
+
+  const calm = await browser.newContext({ reducedMotion: "reduce", viewport: { width: 1440, height: 900 } });
+  const p2 = await calm.newPage();
+  await skipSplash(p2);
+  await p2.goto("/");
+  await expect(p2.getByRole("complementary", { name: "Official portals" }).getByRole("button", { name: "List", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await calm.close();
+  void bars;
+});
+
+test("the portals carousel fits a phone, and passes the accessibility audit in both themes", async ({ page }) => {
+  const check = async (label: string) => {
+    const { violations } = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa", "best-practice"]).analyze();
+    expect(violations.map((v) => `${v.id}: ${v.nodes[0]?.target.join(" ")}`), label).toEqual([]);
+  };
+  await page.setViewportSize({ width: 360, height: 740 });
+  await page.goto("/");
+  await expect(ring(page)).toHaveAttribute("data-settled", "true");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  const b = (await ring(page).boundingBox())!;
+  expect(b.x + b.width).toBeLessThanOrEqual(360);
+  for (const theme of ["dark", "light"] as const) {
+    await page.addInitScript((t) => localStorage.setItem("docutile:theme", t), theme);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    await expect(ring(page)).toHaveAttribute("data-settled", "true");
+    await check(`portals carousel (${theme})`);
   }
 });

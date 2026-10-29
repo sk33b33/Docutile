@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 
 export interface RingItem {
   id: string;
@@ -11,6 +11,8 @@ export interface RingItem {
   badge?: string;
   /** "r g b" colour of this tile's glow. */
   glow: string;
+  /** When set, the tile is a link to this address (opened in a new tab) instead of a button. */
+  href?: string;
 }
 
 /**
@@ -24,7 +26,7 @@ export function RingTile({
   item: RingItem;
   active?: boolean;
   tabIndex?: number;
-  onClick: () => void;
+  onClick: (e: MouseEvent<HTMLElement>) => void;
   className?: string;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -48,6 +50,31 @@ export function RingTile({
   return (
     <span className="ring-tile-wrap" data-active={active} style={{ "--glow": item.glow } as CSSProperties}>
       <span ref={ref} className="ring-scroll" data-more={more} onScroll={measure}>
+        {item.href ? (
+          <a
+            href={item.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            referrerPolicy="no-referrer"
+            draggable={false}
+            className={`ring-tile ${className}`}
+            data-active={active}
+            data-id={item.id}
+            style={{ "--glow": item.glow, WebkitUserDrag: "none" } as CSSProperties}
+            tabIndex={tabIndex}
+            onClick={onClick}
+          >
+          <span>
+            {item.kicker && <span className="ring-kicker block">{item.kicker}</span>}
+            <span className="ring-title mt-1 block text-sm sm:text-base">{item.title}</span>
+          </span>
+          <span>
+            {item.subtitle && <span className="ring-sub block">{item.subtitle}</span>}
+            {item.badge && <span className="ring-sub mt-1 block font-medium text-slate-100">{item.badge}</span>}
+          </span>
+            <span className="sr-only">(opens the official site in a new tab)</span>
+          </a>
+        ) : (
         <button
           type="button"
           className={`ring-tile ${className}`}
@@ -66,6 +93,7 @@ export function RingTile({
             {item.badge && <span className="ring-sub mt-1 block font-medium text-slate-100">{item.badge}</span>}
           </span>
         </button>
+        )}
       </span>
       {more && <span className="ring-more" aria-hidden>Scroll for more</span>}
     </span>

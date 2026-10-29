@@ -98,7 +98,7 @@ export default function DashboardPage() {
       <BackupReminder />
       <input ref={importRef} type="file" accept=".docutile" className="sr-only" tabIndex={-1} aria-hidden onChange={onImport} />
       {/* Explorer and packs on the left; on wide screens the official portals sit beside them, otherwise between them. */}
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1fr)_18rem] xl:grid-rows-[auto_minmax(0,1fr)] xl:items-start">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1fr)_21rem] xl:grid-rows-[auto_minmax(0,1fr)] xl:items-start">
         <ServiceExplorer />
         <div className="xl:col-start-2 xl:row-span-2 xl:row-start-1">
           <div className="xl:sticky xl:top-6"><PortalsPanel /></div>

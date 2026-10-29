@@ -1,5 +1,6 @@
 import { ShieldCheck } from "lucide-react";
-import { PORTAL_NOTE, PortalLinks } from "./PortalLinks";
+import { PORTAL_NOTE } from "./PortalLinks";
+import { PortalsCarousel } from "./PortalsCarousel";
 
 /** Side panel on the dashboard: the official online portals for each main category. */
 export function PortalsPanel() {
@@ -9,7 +10,7 @@ export function PortalsPanel() {
       <p className="mt-1 flex items-start gap-2 text-xs text-slate-300">
         <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden /> {PORTAL_NOTE}
       </p>
-      <div className="mt-3"><PortalLinks /></div>
+      <div className="mt-3"><PortalsCarousel /></div>
     </aside>
   );
 }

@@ -67,7 +67,7 @@ test("a CIPC pack is ready only when its required documents are attached", async
 
 test("CIPC has its own glow in the carousel and its tile is reachable by keyboard", async ({ page }) => {
   await page.goto("/");
-  const stage = page.locator(".ring-stage");
+  const stage = page.locator(".ring-stage").first();
   await expect(stage).toHaveAttribute("data-settled", "true", { timeout: 10_000 });
   const cipc = stage.getByRole("button", { name: /Category CIPC/ });
   await expect(cipc).toHaveCount(1);

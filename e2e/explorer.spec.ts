@@ -5,7 +5,8 @@ import { skipSplash } from "./skip-splash";
 test.beforeEach(({ page }) => skipSplash(page));
 
 const explorer = (p: Page) => p.getByRole("region", { name: "Start a pack" });
-const stage = (p: Page) => p.locator(".ring-stage");
+/** The services ring only: the dashboard has a second ring, for the official portals, in its own panel. */
+const stage = (p: Page) => explorer(p).locator(".ring-stage");
 /** The ring has stopped turning: a tile is locked in the centre. */
 const settled = (p: Page) => expect(stage(p)).toHaveAttribute("data-settled", "true", { timeout: 10_000 });
 const centre = (p: Page) => stage(p).getAttribute("data-active");
@@ -110,9 +111,9 @@ test("the ring spins when dragged, coasts, then locks a tile in the centre and h
   await page.mouse.move(box.x + box.width * 0.5, y);
   await page.mouse.down();
   await expect(stage(page)).toHaveAttribute("data-settled", "false");
-  const held = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>(".ring-stage > div")].map((e) => e.style.transform).join("|"));
+  const held = await page.evaluate(() => [...document.querySelector(".ring-stage")!.querySelectorAll<HTMLElement>(":scope > div")].map((e) => e.style.transform).join("|"));
   await page.waitForTimeout(300);
-  expect(await page.evaluate(() => [...document.querySelectorAll<HTMLElement>(".ring-stage > div")].map((e) => e.style.transform).join("|"))).toBe(held); // frozen while held
+  expect(await page.evaluate(() => [...document.querySelector(".ring-stage")!.querySelectorAll<HTMLElement>(":scope > div")].map((e) => e.style.transform).join("|"))).toBe(held); // frozen while held
   await page.mouse.up();
   await settled(page);
 

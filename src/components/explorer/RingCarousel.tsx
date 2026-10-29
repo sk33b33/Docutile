@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Button, buttonClass } from "@/components/ui/Button";
 import { MAX_SPEED, clampSpeed, motionTo, nearestIndex, stepMotion, tileTransform, type Motion, type RingGeometry } from "@/lib/carousel/physics";
 import { RingTile, type RingItem } from "./RingTile";
 
@@ -29,7 +29,7 @@ const prefersReducedMotion = () => typeof window !== "undefined" && window.match
  * Tiles on a flat ring, the centre one largest. Drag or flick to spin: it coasts, slows, and the nearest tile
  * locks into the centre and hovers. Keyboard and buttons do the same without a pointer.
  */
-export function RingCarousel({ items, label, onSelect }: { items: RingItem[]; label: string; onSelect: (id: string) => void }) {
+export function RingCarousel({ items, label, onSelect, intro = true }: { items: RingItem[]; label: string; onSelect: (id: string) => void; /** Give the ring a short spin when it appears, so it is clear that it turns. */ intro?: boolean }) {
   const n = items.length;
   const stageRef = useRef<HTMLDivElement>(null);
   const slots = useRef<(HTMLDivElement | null)[]>([]);
@@ -118,14 +118,14 @@ export function RingCarousel({ items, label, onSelect }: { items: RingItem[]; la
     apply(stage.clientWidth);
     const ro = new ResizeObserver(() => apply(stage.clientWidth));
     ro.observe(stage);
-    if (!reduced.current && n >= 3) {
+    if (!reduced.current && n >= 3 && intro) {
       motion.current = { p: 0, v: Math.min(MAX_SPEED, 6) };
       run();
     } else {
       setSettled(true);
     }
     return () => { ro.disconnect(); stop(); };
-  }, [n, paint, run, stop]);
+  }, [n, paint, run, stop, intro]);
 
   // Keep keyboard focus on the tile that is now in the centre, but only if focus was already in the ring.
   const firstActive = useRef(true);
@@ -188,13 +188,17 @@ export function RingCarousel({ items, label, onSelect }: { items: RingItem[]; la
     else if (e.key === "End") { e.preventDefault(); goTo(n - 1); }
   }
 
-  const select = (id: string) => { if (!suppressClick.current) onSelect(id); };
+  // A click that ends a drag must not open anything. Link tiles open by themselves; the rest tell the parent.
+  const clicked = (e: React.MouseEvent<HTMLElement>, it: RingItem) => {
+    if (suppressClick.current) { e.preventDefault(); return; }
+    if (!it.href) onSelect(it.id);
+  };
 
   // Fewer than three tiles do not make a ring: show them side by side.
   if (n < 3) {
     return (
       <div role="group" aria-label={label} className="flex flex-wrap justify-center gap-4 py-4">
-        {items.map((it) => <div key={it.id} className="h-36 w-48"><RingTile item={it} active onClick={() => onSelect(it.id)} /></div>)}
+        {items.map((it) => <div key={it.id} className="h-36 w-48"><RingTile item={it} active onClick={(e) => clicked(e, it)} /></div>)}
       </div>
     );
   }
@@ -221,7 +225,7 @@ export function RingCarousel({ items, label, onSelect }: { items: RingItem[]; la
             style={{ width: layout.tileW, height: layout.tileH, marginLeft: -layout.tileW / 2, marginTop: -layout.tileH / 2 + layout.geo.rise / 2, willChange: "transform" }}
           >
             <div className={`h-full w-full ${i === active && settled && !dragging ? "ring-bob" : ""}`}>
-              <RingTile item={it} active={i === active} tabIndex={i === active ? 0 : -1} onClick={() => select(it.id)} />
+              <RingTile item={it} active={i === active} tabIndex={i === active ? 0 : -1} onClick={(e) => clicked(e, it)} />
             </div>
           </div>
         ))}
@@ -229,9 +233,16 @@ export function RingCarousel({ items, label, onSelect }: { items: RingItem[]; la
 
       <div className="ring-controls mt-2 flex flex-wrap items-center justify-center gap-2">
         <Button size="sm" onClick={() => rotateBy(-1)} aria-label="Previous"><ChevronLeft className="h-4 w-4" aria-hidden /></Button>
-        <Button size="sm" variant="primary" onClick={() => onSelect(items[active].id)} className="max-w-[16rem]">
-          <span className="truncate">Open {items[active]?.title}</span>
-        </Button>
+        {items[active]?.href ? (
+          <a href={items[active].href} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className={`${buttonClass("primary", "sm")} max-w-[16rem]`}>
+            <span className="truncate">Open {items[active].title}</span>
+            <span className="sr-only">(opens the official site in a new tab)</span>
+          </a>
+        ) : (
+          <Button size="sm" variant="primary" onClick={() => onSelect(items[active].id)} className="max-w-[16rem]">
+            <span className="truncate">Open {items[active]?.title}</span>
+          </Button>
+        )}
         <Button size="sm" onClick={() => rotateBy(1)} aria-label="Next"><ChevronRight className="h-4 w-4" aria-hidden /></Button>
       </div>
       <p className="sr-only" role="status" aria-live="polite">{settled ? `${items[active]?.title}, ${active + 1} of ${n}` : ""}</p>

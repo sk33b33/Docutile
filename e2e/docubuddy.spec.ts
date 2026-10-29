@@ -194,7 +194,7 @@ test("clearing starts over, and the question box limits what can be typed", asyn
 test("fits a phone screen, and the carousel never floats above it", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 740 });
   await page.goto("/");
-  await expect(page.locator(".ring-stage")).toHaveAttribute("data-settled", "true", { timeout: 10_000 });
+  await expect(page.locator(".ring-stage").first()).toHaveAttribute("data-settled", "true", { timeout: 10_000 });
   await open(page);
   await ask(page, "what is form J294");
   const b = (await panel(page).boundingBox())!;
@@ -216,7 +216,7 @@ test("passes the accessibility audit, closed and open, in both themes", async ({
     await page.addInitScript((t) => localStorage.setItem("docutile:theme", t), theme);
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
-    await expect(page.locator(".ring-stage")).toHaveAttribute("data-settled", "true", { timeout: 10_000 });
+    await expect(page.locator(".ring-stage").first()).toHaveAttribute("data-settled", "true", { timeout: 10_000 });
     await check(`launcher (${theme})`);
     await open(page);
     await check(`greeting (${theme})`);

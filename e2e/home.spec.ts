@@ -97,7 +97,7 @@ test("the light theme keeps text readable on the carousel, the list and a docume
     expect(violations.map((v) => `${v.id}: ${v.nodes[0]?.target.join(" ")}`)).toEqual([]);
   };
   await page.goto("/");
-  await expect(page.locator(".ring-stage")).toHaveAttribute("data-settled", "true", { timeout: 10_000 });
+  await expect(page.locator(".ring-stage").first()).toHaveAttribute("data-settled", "true", { timeout: 10_000 });
   await check();
   const ex = page.getByRole("region", { name: "Start a pack" });
   await ex.getByRole("button", { name: "List", exact: true }).click();

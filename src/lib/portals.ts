@@ -45,3 +45,39 @@ export const portalsFor = (category: string): Portal[] => PORTALS.filter((p) => 
 
 /** The categories that have portals, in the order they first appear. */
 export const portalCategories = (): string[] => [...new Set(PORTALS.map((p) => p.category))];
+
+/** Short names for the category labels, so a tile can say where a portal applies without running out of room. */
+const SHORT: Record<string, string> = {
+  "South African DOJ": "DOJ",
+  "Master of the High Court: other services": "Master",
+  "South African Courts": "Courts",
+  [CIPC_CATEGORY]: "CIPC",
+};
+
+export interface PortalTile {
+  id: string;
+  name: string;
+  url: string;
+  /** The categories it serves, in order, by full name. */
+  categories: string[];
+  /** Everything the official pages say it is for, joined. */
+  what: string;
+  /** Where it applies, in short: "DOJ · Courts". */
+  appliesTo: string;
+}
+
+/** One entry per address: DOJ Online serves three categories, so it is one tile that says so. */
+export function portalTiles(): PortalTile[] {
+  const byUrl = new Map<string, PortalTile>();
+  for (const p of PORTALS) {
+    const t = byUrl.get(p.url);
+    if (!t) byUrl.set(p.url, { id: p.id, name: p.name, url: p.url, categories: [p.category], what: p.what, appliesTo: SHORT[p.category] ?? p.category });
+    else if (!t.categories.includes(p.category)) {
+      t.categories.push(p.category);
+      t.appliesTo = t.categories.map((c) => SHORT[c] ?? c).join(" · ");
+      if (!t.what.includes(p.what)) t.what = `${t.what} ${p.what}`;
+    }
+  }
+  return [...byUrl.values()];
+}
+
