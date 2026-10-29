@@ -216,8 +216,18 @@ test("clicking a portal opens the official site in a new tab that cannot reach b
   expect(opened).toBe(0);
 
   // A real click on the centre tile opens the site in a new tab with no link back (noopener).
-  const popup = context.waitForEvent("page");
-  await ring(page).locator("a.ring-tile[tabindex='0']").click({ force: true }); // it hovers up and down, so it is never "still"
+  // The centre tile hovers up and down, so hold it still first; otherwise a slow machine can move it between press and release.
+  await page.addStyleTag({ content: ".ring-bob, .ring-expand { animation: none !important; }" });
+  const centreTile = ring(page).locator("a.ring-tile[tabindex='0']");
+  await expect(centreTile).toBeVisible();
+  await page.waitForTimeout(100);
+  const box = (await centreTile.boundingBox())!;
+  const at = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  // Whatever sits at that point must be the tile itself (or inside it), or the click could never reach it.
+  const hit = await page.evaluate(({ x, y }) => !!document.elementFromPoint(x, y)?.closest("a.ring-tile[tabindex='0']"), at);
+  expect(hit).toBe(true);
+  const popup = context.waitForEvent("page", { timeout: 15_000 });
+  await page.mouse.click(at.x, at.y);
   const site = await popup;
   await site.waitForLoadState();
   expect(site.url()).toMatch(/^https:\/\/(dojonline|trustonline|icmsweb|eservices|iponline|enquiries|www\.bizportal)\./);
